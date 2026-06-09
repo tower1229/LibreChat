@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson 0001 — LibreChat Monorepo 地图</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --border: #2d3348;
+      --text: #e8eaef;
+      --muted: #8b92a8;
+      --accent: #10a37f;
+      --accent-dim: #0d8a6a;
+      --frontend: #3b82f6;
+      --shared: #a855f7;
+      --backend: #f59e0b;
+      --legacy: #ef4444;
+      --correct: #22c55e;
+      --wrong: #ef4444;
+      --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+      --mono: "Cascadia Code", "Fira Code", Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      padding: 2rem 1.5rem 4rem;
+      max-width: 52rem;
+      margin: 0 auto;
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .lesson-meta {
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.5rem;
+    }
+    h1 { font-size: 1.75rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .mission-tag {
+      display: inline-block;
+      font-size: 0.85rem;
+      color: var(--accent);
+      background: rgba(16, 163, 127, 0.12);
+      padding: 0.25rem 0.65rem;
+      border-radius: 4px;
+      margin-top: 0.5rem;
+    }
+    h2 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin: 2rem 0 0.75rem;
+      color: var(--text);
+    }
+    p { margin-bottom: 1rem; color: #c8cdd8; }
+    a { color: var(--accent); }
+    .diagram {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin: 1.25rem 0;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      line-height: 1.5;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.6rem 0.75rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: var(--surface); color: var(--muted); font-weight: 500; }
+    .tag-fe { color: var(--frontend); }
+    .tag-sh { color: var(--shared); }
+    .tag-be { color: var(--backend); }
+    .tag-lg { color: var(--legacy); }
+    .rule-box {
+      background: rgba(16, 163, 127, 0.08);
+      border-left: 3px solid var(--accent);
+      padding: 1rem 1.25rem;
+      margin: 1.25rem 0;
+      border-radius: 0 6px 6px 0;
+    }
+    .rule-box strong { color: var(--accent); }
+    .quiz {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin: 1.5rem 0;
+    }
+    .quiz h3 { font-size: 1rem; margin-bottom: 1rem; }
+    .quiz-item { margin-bottom: 1.25rem; }
+    .quiz-item p { font-size: 0.95rem; margin-bottom: 0.6rem; }
+    .options { display: flex; flex-direction: column; gap: 0.4rem; }
+    .options label {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      cursor: pointer;
+      padding: 0.5rem 0.65rem;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      font-size: 0.9rem;
+      transition: background 0.15s;
+    }
+    .options label:hover { background: rgba(255,255,255,0.04); }
+    .options input { margin-top: 0.2rem; accent-color: var(--accent); }
+    .feedback {
+      margin-top: 0.75rem;
+      padding: 0.65rem 0.85rem;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      display: none;
+    }
+    .feedback.show { display: block; }
+    .feedback.ok { background: rgba(34, 197, 94, 0.12); color: var(--correct); }
+    .feedback.no { background: rgba(239, 68, 68, 0.12); color: var(--wrong); }
+    button.check-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 0.55rem 1.1rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      margin-top: 0.5rem;
+    }
+    button.check-btn:hover { background: var(--accent-dim); }
+    .win-box {
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin: 2rem 0;
+      display: none;
+    }
+    .win-box.show { display: block; }
+    .win-box h3 { color: var(--correct); margin-bottom: 0.5rem; }
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+    code {
+      font-family: var(--mono);
+      font-size: 0.85em;
+      background: rgba(255,255,255,0.06);
+      padding: 0.15em 0.4em;
+      border-radius: 4px;
+    }
+    .cite { font-size: 0.82rem; color: var(--muted); margin-top: 0.25rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="lesson-meta">Lesson 0001 · ~25 min</div>
+    <h1>LibreChat Monorepo 地图</h1>
+    <p>搞清「代码该写在哪」——二开的第一块地基。</p>
+    <span class="mission-tag">Mission: 深度二开 · 宏观架构</span>
+  </header>
+
+  <section>
+    <h2>你要学会的一件事</h2>
+    <p>
+      看到任意二开需求时，能在 10 秒内判断：<strong>改动应落在哪个 workspace</strong>，
+      以及数据/类型如何在包之间流动。不需要记住每个文件——先建立地图。
+    </p>
+  </section>
+
+  <section>
+    <h2>全景：六个关键 workspace</h2>
+    <p>LibreChat 是 npm workspaces monorepo。根目录 <code>package.json</code> 声明：</p>
+    <div class="diagram">"workspaces": ["api", "client", "packages/*"]</div>
+    <p class="cite">来源：<code>package.json</code> · 详见 <a href="../../../CLAUDE.md">CLAUDE.md</a></p>
+
+    <table>
+      <thead>
+        <tr><th>Workspace</th><th>路径</th><th>角色</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="tag-fe"><strong>client</strong></td>
+          <td><code>/client</code></td>
+          <td>React SPA。页面、组件、React Query hooks（<code>client/src/data-provider/</code>）。</td>
+        </tr>
+        <tr>
+          <td class="tag-sh"><strong>data-provider</strong></td>
+          <td><code>/packages/data-provider</code></td>
+          <td>前后端共享：<strong>类型、API 路径、请求函数</strong>。二开的「契约层」。</td>
+        </tr>
+        <tr>
+          <td class="tag-sh"><strong>client (pkg)</strong></td>
+          <td><code>/packages/client</code></td>
+          <td>前端共享 UI 工具（非主应用）。</td>
+        </tr>
+        <tr>
+          <td class="tag-be"><strong>api (pkg)</strong></td>
+          <td><code>/packages/api</code></td>
+          <td><strong>新后端逻辑写这里</strong>（TypeScript）。业务、服务、中间件。</td>
+        </tr>
+        <tr>
+          <td class="tag-be"><strong>data-schemas</strong></td>
+          <td><code>/packages/data-schemas</code></td>
+          <td>MongoDB models/schemas，DB 相关共享逻辑。</td>
+        </tr>
+        <tr>
+          <td class="tag-lg"><strong>api (legacy)</strong></td>
+          <td><code>/api</code></td>
+          <td>Express 入口 + JS 路由。<strong>尽量薄</strong>，调用 <code>packages/api</code>。</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>依赖方向（背下来）</h2>
+    <div class="diagram"><span class="tag-fe">client</span>
+    ↓ 依赖
+<span class="tag-sh">packages/data-provider</span>  ←→  <span class="tag-sh">packages/client</span>
+    ↑ 被两端使用
+<span class="tag-lg">api (legacy /api)</span>  →  调用  <span class="tag-be">packages/api</span>
+                              →  使用  <span class="tag-be">packages/data-schemas</span>
+                              →  使用  <span class="tag-sh">packages/data-provider</span></div>
+
+    <div class="rule-box">
+      <strong>二开黄金法则</strong>（来自 CLAUDE.md）：<br>
+      新后端 → <code>packages/api</code>（TS）<br>
+      共享类型/endpoint → <code>packages/data-provider</code><br>
+      DB schema → <code>packages/data-schemas</code><br>
+      <code>/api</code> 只加薄路由，不堆业务逻辑
+    </div>
+  </section>
+
+  <section>
+    <h2>用前端经验类比</h2>
+    <p>如果你熟悉「前端 monorepo + 共享 types 包」，可以这样映射：</p>
+    <table>
+      <thead><tr><th>你可能熟悉的</th><th>LibreChat 对应</th></tr></thead>
+      <tbody>
+        <tr><td>App 壳 + 页面</td><td><code>client/</code></td></tr>
+        <tr><td><code>@org/api-types</code> + fetch 封装</td><td><code>packages/data-provider</code></td></tr>
+        <tr><td>UI 组件库</td><td><code>packages/client</code></td></tr>
+        <tr><td>BFF / Server（你要新学的）</td><td><code>packages/api</code> + <code>/api</code> 入口</td></tr>
+        <tr><td>ORM / 数据模型</td><td><code>packages/data-schemas</code>（Mongoose）</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>动手：在仓库里验证</h2>
+    <p>打开以下文件各扫一眼（不用读完），感受「地图上的地标」：</p>
+    <ol style="margin-left: 1.25rem; color: #c8cdd8; margin-bottom: 1rem;">
+      <li><code>packages/data-provider/src/api-endpoints.ts</code> — endpoint 常量</li>
+      <li><code>packages/data-provider/src/data-service.ts</code> — 前端怎么调 API</li>
+      <li><code>api/server/index.js</code> — Express 启动（注意 import <code>@librechat/api</code>）</li>
+      <li><code>client/src/routes/index.tsx</code> — 前端路由</li>
+    </ol>
+    <p class="cite">路径相对于仓库根目录。详见 <code>docs/teach/RESOURCES.md</code>。</p>
+  </section>
+
+  <section class="quiz" id="quiz">
+    <h3>✓ 检查理解（3 题）</h3>
+
+    <div class="quiz-item" data-q="1" data-answer="b">
+      <p><strong>1.</strong> 你要给 LibreChat 加一个新的 REST endpoint，业务逻辑应该主要写在哪？</p>
+      <div class="options">
+        <label><input type="radio" name="q1" value="a" /> <code>client/src/</code></label>
+        <label><input type="radio" name="q1" value="b" /> <code>packages/api</code>（<code>/api</code> 只加薄路由）</label>
+        <label><input type="radio" name="q1" value="c" /> <code>packages/data-schemas</code></label>
+      </div>
+      <div class="feedback" id="fb1"></div>
+    </div>
+
+    <div class="quiz-item" data-q="2" data-answer="c">
+      <p><strong>2.</strong> 前后端都要用到的 TypeScript 类型和 API 路径常量，应该放在哪？</p>
+      <div class="options">
+        <label><input type="radio" name="q2" value="a" /> <code>client/src/types/</code></label>
+        <label><input type="radio" name="q2" value="b" /> <code>api/server/</code></label>
+        <label><input type="radio" name="q2" value="c" /> <code>packages/data-provider</code></label>
+      </div>
+      <div class="feedback" id="fb2"></div>
+    </div>
+
+    <div class="quiz-item" data-q="3" data-answer="a">
+      <p><strong>3.</strong> MongoDB 的 schema / model 定义主要在哪个 workspace？</p>
+      <div class="options">
+        <label><input type="radio" name="q3" value="a" /> <code>packages/data-schemas</code></label>
+        <label><input type="radio" name="q3" value="b" /> <code>packages/api</code></label>
+        <label><input type="radio" name="q3" value="c" /> <code>client/</code></label>
+      </div>
+      <div class="feedback" id="fb3"></div>
+    </div>
+
+    <button class="check-btn" type="button" onclick="checkQuiz()">提交答案</button>
+  </section>
+
+  <section class="win-box" id="win">
+    <h3>🎉 本课完成</h3>
+    <p>你已经能回答二开时最常问的问题：<strong>「这段代码该放哪个包？」</strong></p>
+    <p>下一课建议：<strong>data-provider 三件套</strong>（types · endpoints · data-service）——从前端最熟悉的入口深入。</p>
+    <p>有疑问随时在 Cursor 里问 Agent，带上 <code>docs/teach/MISSION.md</code> 上下文。</p>
+  </section>
+
+  <footer>
+  <p><strong>参考</strong>：<a href="../../../CLAUDE.md">CLAUDE.md</a> · <a href="../reference/0001-workspace-map.html">速查：Workspace 地图</a></p>
+  <p><strong>教师</strong>：学完可在对话中说「我完成了 0001」，Agent 会更新 learning record 并安排下一课。</p>
+  </footer>
+
+  <script>
+    const answers = {
+      q1: { b: '对。packages/api 是 TS 业务主场；/api 只做 Express 路由挂载。' },
+      q2: { c: '对。data-provider 是前后端共享契约，改 endpoint 通常从这里开始。' },
+      q3: { a: '对。data-schemas 管 MongoDB 模型，api 包消费它。' }
+    };
+    function checkQuiz() {
+      let allCorrect = true;
+      for (let i = 1; i <= 3; i++) {
+        const selected = document.querySelector(`input[name="q${i}"]:checked`);
+        const fb = document.getElementById(`fb${i}`);
+        const item = document.querySelector(`.quiz-item[data-q="${i}"]`);
+        const correct = item.dataset.answer;
+        fb.classList.add('show');
+        if (!selected) {
+          fb.className = 'feedback show no';
+          fb.textContent = '请选择一个选项。';
+          allCorrect = false;
+          continue;
+        }
+        if (selected.value === correct) {
+          fb.className = 'feedback show ok';
+          fb.textContent = '✓ ' + answers[`q${i}`][correct];
+        } else {
+          fb.className = 'feedback show no';
+          fb.textContent = '✗ 再想想——回顾上面的表格和黄金法则。';
+          allCorrect = false;
+        }
+      }
+      if (allCorrect) document.getElementById('win').classList.add('show');
+    }
+  </script>
+</body>
+</html>
