@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson 0002 — data-provider 三件套</title>
+  <style>
+    :root {
+      --bg: #0f1117; --surface: #1a1d27; --border: #2d3348;
+      --text: #e8eaef; --muted: #8b92a8; --accent: #10a37f;
+      --frontend: #3b82f6; --shared: #a855f7; --backend: #f59e0b;
+      --font: "Segoe UI", system-ui, sans-serif;
+      --mono: "Cascadia Code", Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.65; padding: 2rem 1.5rem 4rem; max-width: 52rem; margin: 0 auto; }
+    header { border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; }
+    .lesson-meta { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.5rem; }
+    h1 { font-size: 1.75rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .mission-tag { display: inline-block; font-size: 0.85rem; color: var(--accent); background: rgba(16,163,127,.12); padding: .25rem .65rem; border-radius: 4px; margin-top: .5rem; }
+    h2 { font-size: 1.15rem; font-weight: 600; margin: 2rem 0 .75rem; }
+    p { margin-bottom: 1rem; color: #c8cdd8; }
+    a { color: var(--accent); }
+    .diagram { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin: 1.25rem 0; font-family: var(--mono); font-size: 0.76rem; line-height: 1.55; overflow-x: auto; white-space: pre; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+    th, td { border: 1px solid var(--border); padding: 0.6rem 0.75rem; text-align: left; vertical-align: top; }
+    th { background: var(--surface); color: var(--muted); font-weight: 500; }
+    .cite { font-size: 0.85rem; color: var(--muted); }
+    .step { display: flex; gap: .75rem; margin: .75rem 0; align-items: flex-start; }
+    .step-num { flex-shrink: 0; width: 1.6rem; height: 1.6rem; background: var(--accent); color: #fff; border-radius: 50%; font-size: .8rem; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+    .step-body { flex: 1; }
+    .step-body code { font-family: var(--mono); font-size: 0.82em; color: #a5f3d0; }
+    .rule-box { background: rgba(16,163,127,.08); border-left: 3px solid var(--accent); padding: 1rem 1.25rem; margin: 1.25rem 0; border-radius: 0 6px 6px 0; }
+    .quiz { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin: 1.5rem 0; }
+    .quiz h3 { font-size: 1rem; margin-bottom: 1rem; }
+    .quiz-item { margin-bottom: 1.25rem; }
+    .options { display: flex; flex-direction: column; gap: .4rem; }
+    .options label { display: flex; gap: .5rem; cursor: pointer; padding: .5rem .65rem; border-radius: 6px; border: 1px solid transparent; }
+    .options label:hover { background: rgba(255,255,255,.04); border-color: var(--border); }
+    .feedback { display: none; margin-top: .5rem; font-size: .9rem; padding: .5rem .75rem; border-radius: 4px; }
+    .feedback.show { display: block; }
+    .feedback.ok { background: rgba(34,197,94,.12); color: #86efac; }
+    .feedback.no { background: rgba(239,68,68,.12); color: #fca5a5; }
+    .check-btn { background: var(--accent); color: #fff; border: none; padding: .6rem 1.25rem; border-radius: 6px; font-size: .95rem; cursor: pointer; margin-top: .5rem; }
+    .check-btn:hover { filter: brightness(1.1); }
+    .win-box { display: none; background: rgba(16,163,127,.1); border: 1px solid var(--accent); border-radius: 8px; padding: 1.25rem; margin: 1.5rem 0; }
+    .win-box.show { display: block; }
+    .trace-input { width: 100%; background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: .5rem .75rem; border-radius: 6px; font-family: var(--mono); font-size: .85rem; margin-top: .35rem; }
+    footer { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="lesson-meta">Lesson 0002 · 约 30 分钟</div>
+    <h1>data-provider 三件套</h1>
+    <span class="mission-tag">Mission：能 trace 一条 API 从 UI 到后端</span>
+    <p class="cite" style="margin-top:1rem"><a href="0001-monorepo-map.html">← Lesson 0001</a> · <a href="../reference/0002-data-provider-trilogy.html">速查表</a></p>
+  </header>
+
+  <section>
+    <h2>本课只学一件事</h2>
+    <p>掌握 LibreChat 的<strong>前后端契约层</strong>：<code>packages/data-provider</code> 里三个协作文件如何拼成一条可追踪的 API 调用。</p>
+    <p>用真实样本 <strong><code>getStartupConfig</code></strong>（应用启动配置，登录页和聊天页都会用）贯穿全课。</p>
+  </section>
+
+  <section>
+    <h2>三件套分工</h2>
+    <table>
+      <thead><tr><th>层</th><th>文件</th><th>一句话</th></tr></thead>
+      <tbody>
+        <tr><td style="color:var(--shared)">① 路径</td><td><code>api-endpoints.ts</code></td><td>这个 API 的 URL 是什么</td></tr>
+        <tr><td style="color:var(--shared)">② 类型</td><td><code>config.ts</code> / <code>types/</code></td><td>请求和响应长什么样</td></tr>
+        <tr><td style="color:var(--shared)">③ 调用</td><td><code>data-service.ts</code></td><td>前端怎么发这个请求</td></tr>
+      </tbody>
+    </table>
+    <p class="cite">类比：你们团队里的 <code>@org/api-types</code> + OpenAPI 生成的 client，但三件套拆得更细、且前后端共用。</p>
+  </section>
+
+  <section>
+    <h2>样本代码（真实仓库）</h2>
+
+    <p><strong>① endpoints</strong> — 拼出 <code>GET /api/config</code></p>
+    <div class="diagram">// packages/data-provider/src/api-endpoints.ts
+export const config = (context?: StartupConfigContext) =>
+  `${BASE_URL}/api/config${buildQuery({ context })}`;</div>
+
+    <p><strong>② types</strong> — 响应形状</p>
+    <div class="diagram">// packages/data-provider/src/config.ts
+export type TStartupConfig = {
+  appTitle: string;
+  emailLoginEnabled: boolean;
+  interface?: TInterfaceConfig;
+  // ... 更多字段
+};</div>
+
+    <p><strong>③ data-service</strong> — 把 ① 和 ② 连起来</p>
+    <div class="diagram">// packages/data-provider/src/data-service.ts
+export const getStartupConfig = (options?) =>
+  request.get(endpoints.config(options?.context));
+// 返回类型：Promise&lt;TStartupConfig &amp; ...&gt;</div>
+
+    <p><strong>底层 transport</strong> — <code>request.ts</code> 用 axios，自动带 JWT cookie/header（你暂时只需知道「鉴权在这里统一处理」）。</p>
+  </section>
+
+  <section>
+    <h2>端到端 Trace（5 站）</h2>
+    <p>在 IDE 里按顺序打开（或 DevTools Network 过滤 <code>config</code>）：</p>
+
+    <div class="step"><span class="step-num">1</span><div class="step-body"><strong>React Query Hook</strong><br><code>client/src/data-provider/Endpoints/queries.ts</code><br><code>useGetStartupConfig</code> → 调用 <code>dataService.getStartupConfig</code></div></div>
+    <div class="step"><span class="step-num">2</span><div class="step-body"><strong>data-service</strong><br><code>packages/data-provider/src/data-service.ts</code> → <code>getStartupConfig</code></div></div>
+    <div class="step"><span class="step-num">3</span><div class="step-body"><strong>endpoint</strong><br><code>packages/data-provider/src/api-endpoints.ts</code> → <code>config()</code></div></div>
+    <div class="step"><span class="step-num">4</span><div class="step-body"><strong>Express 挂载</strong><br><code>api/server/index.js</code> → <code>app.use('/api/config', ..., routes.config)</code></div></div>
+    <div class="step"><span class="step-num">5</span><div class="step-body"><strong>Handler</strong><br><code>api/server/routes/config.js</code> → <code>router.get('/')</code> 组装 <code>TStartupConfig</code> 并 <code>res.send(payload)</code></div></div>
+
+    <div class="diagram">useGetStartupConfig()
+    ↓
+getStartupConfig()          ← data-service
+    ↓
+endpoints.config()        ← api-endpoints  →  GET /api/config
+    ↓
+request.get()             ← axios
+    ↓
+routes/config.js          ← 后端 handler
+    ↓
+JSON（应对齐 TStartupConfig）</div>
+  </section>
+
+  <section>
+    <h2>动手：在浏览器验证</h2>
+    <ol style="margin-left:1.25rem;color:#c8cdd8;margin-bottom:1rem">
+      <li>确保 <code>npm run backend:dev</code> 在跑</li>
+      <li>打开 <code>http://localhost:3080/api/config</code>（或登录后 DevTools → Network）</li>
+      <li>找到响应 JSON，对照 <code>TStartupConfig</code> 里的字段（如 <code>appTitle</code>、<code>emailLoginEnabled</code>）</li>
+    </ol>
+    <p>未登录时 handler 走 <code>buildPreLoginPayload()</code> 分支——响应字段更少，这是刻意的安全设计。</p>
+    <p class="cite">来源：<a href="https://github.com/danny-avila/LibreChat/blob/main/api/server/routes/config.js">api/server/routes/config.js</a> 注释说明匿名可读的字段范围。</p>
+  </section>
+
+  <section>
+    <h2>二开时改 API 的标准顺序</h2>
+    <div class="rule-box">
+      <strong>新增或修改 REST API 时，按这个顺序动刀：</strong><br><br>
+      1. <code>types/</code> 或相关类型文件 — 定义响应/请求形状<br>
+      2. <code>api-endpoints.ts</code> — 加 URL 函数<br>
+      3. <code>data-service.ts</code> — 加 <code>getXxx</code> / <code>postXxx</code><br>
+      4. <code>keys.ts</code> — 若前端用 React Query，加 QueryKey<br>
+      5. 后端 route + <code>packages/api</code> 业务逻辑<br>
+      6. <code>npm run build:data-provider</code> — 改 types 后必须 rebuild
+    </div>
+  </section>
+
+  <section class="quiz" id="quiz">
+    <h3>✓ 检查理解</h3>
+
+    <div class="quiz-item" data-q="1" data-answer="b">
+      <p><strong>1.</strong> 你要新增 <code>GET /api/widgets</code>，第一步应该改哪个文件？</p>
+      <div class="options">
+        <label><input type="radio" name="q1" value="a" /> <code>client/src/components/</code></label>
+        <label><input type="radio" name="q1" value="b" /> <code>packages/data-provider</code> 的 types + endpoints</label>
+        <label><input type="radio" name="q1" value="c" /> <code>api/server/index.js</code></label>
+      </div>
+      <div class="feedback" id="fb1"></div>
+    </div>
+
+    <div class="quiz-item" data-q="2" data-answer="c">
+      <p><strong>2.</strong> <code>getStartupConfig</code> 最终请求的 HTTP 路径是？</p>
+      <div class="options">
+        <label><input type="radio" name="q2" value="a" /> <code>/api/startup</code></label>
+        <label><input type="radio" name="q2" value="b" /> <code>/config</code></label>
+        <label><input type="radio" name="q2" value="c" /> <code>/api/config</code></label>
+      </div>
+      <div class="feedback" id="fb2"></div>
+    </div>
+
+    <div class="quiz-item" data-q="3" data-answer="a">
+      <p><strong>3.</strong> 修改 <code>TStartupConfig</code> 类型后，必须执行？</p>
+      <div class="options">
+        <label><input type="radio" name="q3" value="a" /> <code>npm run build:data-provider</code></label>
+        <label><input type="radio" name="q3" value="b" /> 只需保存，Vite 会自动编译 data-provider</label>
+        <label><input type="radio" name="q3" value="c" /> <code>npm run reinstall</code></label>
+      </div>
+      <div class="feedback" id="fb3"></div>
+    </div>
+
+    <div class="quiz-item" data-q="4" data-answer="trace">
+      <p><strong>4.</strong> 动手题：按 trace 顺序，<code>data-service.ts</code> 的下一站文件是？（填文件名，不含路径）</p>
+      <input type="text" class="trace-input" id="traceAnswer" placeholder="例如 request.ts" autocomplete="off" />
+      <div class="feedback" id="fb4"></div>
+    </div>
+
+    <button class="check-btn" type="button" onclick="checkQuiz()">提交答案</button>
+  </section>
+
+  <section class="win-box" id="win">
+    <h3>🎉 本课完成</h3>
+    <p>你已经掌握二开最核心的技能之一：<strong>从 UI 一路 trace 到后端 handler</strong>。</p>
+    <p>下一课：<strong>React Query 层</strong> — <code>client/src/data-provider/</code> 如何把 data-service 接到组件。</p>
+    <p>有疑问随时在 Cursor 问 Agent，说「我在学 0002」。</p>
+  </section>
+
+  <footer>
+    <p><strong>参考</strong>：<a href="../reference/0002-data-provider-trilogy.html">速查：三件套</a> · <a href="../reference/0001-workspace-map.html">Workspace 地图</a> · <a href="../../../CLAUDE.md">CLAUDE.md</a></p>
+    <p><strong>教师</strong>：完成后在对话中说「我完成了 0002」。</p>
+  </footer>
+
+  <script>
+    const radioAnswers = {
+      q1: { b: '对。契约层先行——先定类型和 URL，再写后端和 UI。' },
+      q2: { c: '对。endpoints.config() 拼出 /api/config。' },
+      q3: { a: '对。data-provider 是独立 workspace，改 TS 后需 build 才能让 client/api 用到新类型。' }
+    };
+    function checkQuiz() {
+      let allCorrect = true;
+      for (let i = 1; i <= 3; i++) {
+        const selected = document.querySelector(`input[name="q${i}"]:checked`);
+        const fb = document.getElementById(`fb${i}`);
+        const item = document.querySelector(`.quiz-item[data-q="${i}"]`);
+        const correct = item.dataset.answer;
+        fb.classList.add('show');
+        if (!selected) {
+          fb.className = 'feedback show no';
+          fb.textContent = '请选择一个选项。';
+          allCorrect = false;
+          continue;
+        }
+        if (selected.value === correct) {
+          fb.className = 'feedback show ok';
+          fb.textContent = '✓ ' + radioAnswers[`q${i}`][correct];
+        } else {
+          fb.className = 'feedback show no';
+          fb.textContent = '✗ 回顾上文三件套与 trace 图。';
+          allCorrect = false;
+        }
+      }
+      const trace = document.getElementById('traceAnswer').value.trim().toLowerCase();
+      const fb4 = document.getElementById('fb4');
+      fb4.classList.add('show');
+      const ok = trace === 'api-endpoints.ts' || trace === 'api-endpoints';
+      if (ok) {
+        fb4.className = 'feedback show ok';
+        fb4.textContent = '✓ 对。data-service 调用 endpoints.xxx() 拿 URL；然后才进 request.ts 发 HTTP。';
+      } else {
+        fb4.className = 'feedback show no';
+        fb4.textContent = '✗ 提示：data-service 里 getStartupConfig 下一行调用了 endpoints.config()，在哪个文件？';
+        allCorrect = false;
+      }
+      if (allCorrect) document.getElementById('win').classList.add('show');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ref — data-provider 三件套速查</title>
+  <style>
+    @media print { body { background: #fff; color: #000; } .no-print { display: none; } }
+    body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; font-size: 0.9rem; }
+    h1 { font-size: 1.25rem; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+    th, td { border: 1px solid #ccc; padding: 0.4rem 0.5rem; text-align: left; vertical-align: top; }
+    th { background: #f5f5f5; }
+    .flow { font-family: ui-monospace, monospace; font-size: 0.78rem; background: #f8f8f8; padding: 0.75rem; border-left: 3px solid #10a37f; margin: 1rem 0; white-space: pre-wrap; }
+    .rule { background: #f0fdf4; border-left: 3px solid #10a37f; padding: 0.75rem; margin: 1rem 0; font-size: 0.85rem; }
+    code { font-size: 0.85em; }
+  </style>
+</head>
+<body>
+  <h1>data-provider 三件套速查</h1>
+  <p class="no-print"><a href="../lessons/0002-data-provider-trilogy.html">← 回到 Lesson 0002</a></p>
+
+  <table>
+    <tr><th>文件</th><th>职责</th><th>二开时改什么</th></tr>
+    <tr>
+      <td><code>api-endpoints.ts</code></td>
+      <td>拼 URL（路径 + query）</td>
+      <td>新增/修改 REST 路径</td>
+    </tr>
+    <tr>
+      <td><code>types/</code> · <code>config.ts</code></td>
+      <td>请求/响应 TypeScript 类型</td>
+      <td>新字段、新接口形状</td>
+    </tr>
+    <tr>
+      <td><code>data-service.ts</code></td>
+      <td>调用 <code>request.get/post/...</code></td>
+      <td>新增 API 函数</td>
+    </tr>
+    <tr>
+      <td><code>keys.ts</code></td>
+      <td>React Query 缓存键</td>
+      <td>新 query 的 key 枚举</td>
+    </tr>
+    <tr>
+      <td><code>request.ts</code></td>
+      <td>axios 封装、鉴权 header</td>
+      <td>很少改</td>
+    </tr>
+  </table>
+
+  <div class="flow">UI / Hook
+  → data-service.ts（如 getStartupConfig）
+    → api-endpoints.ts（如 config() → /api/config）
+      → request.ts（axios + token）
+        → Express route（如 api/server/routes/config.js）
+          → 返回 JSON（形状应对齐 types）</div>
+
+  <div class="rule">
+    <strong>改 types 后必须 rebuild：</strong><br>
+    <code>npm run build:data-provider</code>（仓库根目录）
+  </div>
+
+  <p><strong>样本链路</strong>：<code>useGetStartupConfig</code> → <code>getStartupConfig</code> → <code>config()</code> → <code>GET /api/config</code></p>
+</body>
+</html>

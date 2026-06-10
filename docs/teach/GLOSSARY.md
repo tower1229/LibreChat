@@ -19,3 +19,15 @@ _Avoid_: 后端（当泛指整个服务端时）
 **packages/api**:
 TypeScript 后端业务代码所在地，被 legacy `/api` import 并调用。
 _Avoid_: 新 api、api v2
+
+**api-endpoints**:
+`packages/data-provider/src/api-endpoints.ts`。纯函数，负责拼 REST URL（含 query）。二开加新 API 时第二站（第一站是 types）。
+_Avoid_: 路由定义（那是 Express 侧的事）
+
+**data-service**:
+`packages/data-provider/src/data-service.ts`。每个导出函数对应一个 API 调用，内部组合 `endpoints` + `request`。
+_Avoid_: React Query hook（那是 client 层）
+
+**Trace（追踪）**:
+从 UI hook 沿 data-service → endpoints → Express route → handler 逐文件跟读，验证你对一条 API 全链路的理解。二开基本功。
+_Avoid_: 只看一端（只看前端或只看后端）
