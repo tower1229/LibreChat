@@ -28,6 +28,14 @@ _Avoid_: 路由定义（那是 Express 侧的事）
 `packages/data-provider/src/data-service.ts`。每个导出函数对应一个 API 调用，内部组合 `endpoints` + `request`。
 _Avoid_: React Query hook（那是 client 层）
 
+**client data-provider**:
+`client/src/data-provider/`。前端 React Query 适配层：`useQuery` / `useMutation` hooks 包装 `dataService`，组件通过 `~/data-provider` import。与 `packages/data-provider` 同名不同层。
+_Avoid_: 与共享契约包混为一谈
+
+**QueryKeys**:
+`packages/data-provider/src/keys.ts` 中的枚举。React Query 缓存主键，mutation 后 `invalidateQueries` 用同一套 key。
+_Avoid_: 在 client 层手写字符串 key
+
 **Trace（追踪）**:
 从 UI hook 沿 data-service → endpoints → Express route → handler 逐文件跟读，验证你对一条 API 全链路的理解。二开基本功。
 _Avoid_: 只看一端（只看前端或只看后端）

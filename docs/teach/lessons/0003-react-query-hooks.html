@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson 0003 — React Query Hook 层</title>
+  <style>
+    :root {
+      --bg: #0f1117; --surface: #1a1d27; --border: #2d3348;
+      --text: #e8eaef; --muted: #8b92a8; --accent: #10a37f;
+      --frontend: #3b82f6; --shared: #a855f7; --backend: #f59e0b;
+      --font: "Segoe UI", system-ui, sans-serif;
+      --mono: "Cascadia Code", Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.65; padding: 2rem 1.5rem 4rem; max-width: 52rem; margin: 0 auto; }
+    header { border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; }
+    .lesson-meta { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.5rem; }
+    h1 { font-size: 1.75rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .mission-tag { display: inline-block; font-size: 0.85rem; color: var(--accent); background: rgba(16,163,127,.12); padding: .25rem .65rem; border-radius: 4px; margin-top: .5rem; }
+    h2 { font-size: 1.15rem; font-weight: 600; margin: 2rem 0 .75rem; }
+    p { margin-bottom: 1rem; color: #c8cdd8; }
+    a { color: var(--accent); }
+    .diagram { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin: 1.25rem 0; font-family: var(--mono); font-size: 0.76rem; line-height: 1.55; overflow-x: auto; white-space: pre; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+    th, td { border: 1px solid var(--border); padding: 0.6rem 0.75rem; text-align: left; vertical-align: top; }
+    th { background: var(--surface); color: var(--muted); font-weight: 500; }
+    .cite { font-size: 0.85rem; color: var(--muted); }
+    .step { display: flex; gap: .75rem; margin: .75rem 0; align-items: flex-start; }
+    .step-num { flex-shrink: 0; width: 1.6rem; height: 1.6rem; background: var(--accent); color: #fff; border-radius: 50%; font-size: .8rem; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+    .step-body { flex: 1; }
+    .step-body code { font-family: var(--mono); font-size: 0.82em; color: #a5f3d0; }
+    .rule-box { background: rgba(16,163,127,.08); border-left: 3px solid var(--accent); padding: 1rem 1.25rem; margin: 1.25rem 0; border-radius: 0 6px 6px 0; }
+    .layer-fe { color: var(--frontend); }
+    .layer-sh { color: var(--shared); }
+    .quiz { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin: 1.5rem 0; }
+    .quiz h3 { font-size: 1rem; margin-bottom: 1rem; }
+    .quiz-item { margin-bottom: 1.25rem; }
+    .options { display: flex; flex-direction: column; gap: .4rem; }
+    .options label { display: flex; gap: .5rem; cursor: pointer; padding: .5rem .65rem; border-radius: 6px; border: 1px solid transparent; }
+    .options label:hover { background: rgba(255,255,255,.04); border-color: var(--border); }
+    .feedback { display: none; margin-top: .5rem; font-size: .9rem; padding: .5rem .75rem; border-radius: 4px; }
+    .feedback.show { display: block; }
+    .feedback.ok { background: rgba(34,197,94,.12); color: #86efac; }
+    .feedback.no { background: rgba(239,68,68,.12); color: #fca5a5; }
+    .check-btn { background: var(--accent); color: #fff; border: none; padding: .6rem 1.25rem; border-radius: 6px; font-size: .95rem; cursor: pointer; margin-top: .5rem; }
+    .check-btn:hover { filter: brightness(1.1); }
+    .win-box { display: none; background: rgba(16,163,127,.1); border: 1px solid var(--accent); border-radius: 8px; padding: 1.25rem; margin: 1.5rem 0; }
+    .win-box.show { display: block; }
+    .trace-input { width: 100%; background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: .5rem .75rem; border-radius: 6px; font-family: var(--mono); font-size: .85rem; margin-top: .35rem; }
+    footer { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="lesson-meta">Lesson 0003 · 约 30 分钟</div>
+    <h1>React Query Hook 层</h1>
+    <span class="mission-tag">Mission：把 data-service 接到 React 组件</span>
+    <p class="cite" style="margin-top:1rem"><a href="0002-data-provider-trilogy.html">← Lesson 0002</a> · <a href="../reference/0003-react-query-hooks.html">速查表</a></p>
+  </header>
+
+  <section>
+    <h2>本课只学一件事</h2>
+    <p>第二课你 trace 到了 <code>dataService.getStartupConfig()</code>。本课回答：<strong>组件怎么订阅这份数据？缓存怎么管？</strong></p>
+    <p>答案在 <code class="layer-fe">client/src/data-provider/</code> — LibreChat 前端的 <strong>React Query 适配层</strong>。</p>
+  </section>
+
+  <section>
+    <h2>两层 data-provider，别混淆</h2>
+    <table>
+      <thead><tr><th>包</th><th>路径</th><th>职责</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="layer-sh">共享契约</td>
+          <td><code>packages/data-provider</code></td>
+          <td>types、endpoints、data-service、QueryKeys — 前后端共用</td>
+        </tr>
+        <tr>
+          <td class="layer-fe">前端适配</td>
+          <td><code>client/src/data-provider</code></td>
+          <td><code>useQuery</code> / <code>useMutation</code> hooks，接组件</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="cite">你在别的项目里可能把这两层合成一个 <code>@org/api-client</code> 包；LibreChat 刻意拆开，让后端也能 import 同一套 types 和 endpoints。</p>
+  </section>
+
+  <section>
+    <h2>目录结构（按功能分文件夹）</h2>
+    <div class="diagram">client/src/data-provider/
+├── index.ts              ← 统一 export，组件 import 自 ~/data-provider
+├── queries.ts            ← 通用 query hooks（会话、助手等）
+├── mutations.ts          ← 通用 mutation hooks
+├── Endpoints/
+│   ├── index.ts
+│   └── queries.ts        ← useGetStartupConfig 在这里
+├── Auth/                 ← 登录相关 hooks
+├── Messages/
+├── Files/
+└── ...</div>
+    <p>二开加新 API 时：先在 <code>packages/data-provider</code> 加三件套，再在对应功能文件夹加 <code>queries.ts</code> 或 <code>mutations.ts</code>，最后从 <code>index.ts</code> export。</p>
+  </section>
+
+  <section>
+    <h2>样本：useGetStartupConfig 解剖</h2>
+    <p>打开 <code>client/src/data-provider/Endpoints/queries.ts</code>：</p>
+    <div class="diagram">export const startupConfigKey = (isAuthenticated, context?) =>
+  [QueryKeys.startupConfig, isAuthenticated, context ?? 'default'] as const;
+
+export const useGetStartupConfig = (config?, options?) => {
+  const queriesEnabled = useRecoilValue(store.queriesEnabled);
+  const user = useRecoilValue(store.user);
+  return useQuery(
+    startupConfigKey(!!user, options?.context),   // ① 缓存键
+    () => dataService.getStartupConfig({ ... }),  // ② 取数函数
+    {
+      staleTime: Infinity,                        // ③ 启动配置几乎不变
+      refetchOnWindowFocus: false,
+      ...config,
+      enabled: (config?.enabled ?? true) && queriesEnabled,  // ④ 门控
+    },
+  );
+};</div>
+
+    <p><strong>四个要点：</strong></p>
+    <div class="step"><span class="step-num">①</span><div class="step-body"><strong>QueryKey</strong> 来自 <code>packages/data-provider/src/keys.ts</code> 的 <code>QueryKeys</code> 枚举。LibreChat 把 key 定义在共享包里，方便 mutation 后 <code>invalidateQueries</code> 时前后一致。</div></div>
+    <div class="step"><span class="step-num">②</span><div class="step-body"><strong>queryFn</strong> 只调 <code>dataService.xxx()</code>，不直接写 axios。Hook 层不管 URL 和类型，只管缓存策略。</div></div>
+    <div class="step"><span class="step-num">③</span><div class="step-body"><strong>staleTime / refetch 选项</strong> 按数据特性配置。启动配置用 <code>Infinity</code>；余额类数据会 <code>refetchOnWindowFocus: true</code>（见 <code>Misc/queries.ts</code>）。</div></div>
+    <div class="step"><span class="step-num">④</span><div class="step-body"><strong>enabled 门控</strong>：<code>queriesEnabled</code>（Recoil 全局开关）+ 可选的 <code>config.enabled</code>。未登录时不乱发需要鉴权的请求。</div></div>
+  </section>
+
+  <section>
+    <h2>为什么 startupConfigKey 要带 isAuthenticated？</h2>
+    <div class="rule-box">
+      登录页和聊天页调同一个 <code>/api/config</code>，但<strong>响应字段不同</strong>（未登录走 <code>buildPreLoginPayload</code>）。<br><br>
+      若缓存键相同，登录后可能读到登录前的「瘦」配置。<br>
+      <code>startupConfigKey(!!user, context)</code> 把「是否已登录」编进 key，两份缓存互不污染。
+    </div>
+    <p class="cite">同类模式：Share 页传 <code>{ context: 'share' }</code>，key 第三段变成 <code>'share'</code>。</p>
+  </section>
+
+  <section>
+    <h2>组件里怎么用</h2>
+    <p>打开 <code>client/src/components/Nav/SettingsTabs/About/About.tsx</code>：</p>
+    <div class="diagram">import { useGetStartupConfig } from '~/data-provider';
+import type { TStartupConfig } from 'librechat-data-provider';
+
+function About() {
+  const { data: startupConfig } = useGetStartupConfig();
+  const buildInfo = startupConfig?.buildInfo;
+  // ...
+}</div>
+    <p>组件<strong>只 import hook 和类型</strong>，不碰 <code>data-service</code> 或 <code>endpoints</code>。类型从 <code>librechat-data-provider</code> 包 import（即 <code>packages/data-provider</code> 编译产物）。</p>
+  </section>
+
+  <section>
+    <h2>Query vs Mutation（先建立直觉）</h2>
+    <table>
+      <thead><tr><th></th><th>Query（读）</th><th>Mutation（写）</th></tr></thead>
+      <tbody>
+        <tr><td>Hook</td><td><code>useQuery</code></td><td><code>useMutation</code></td></tr>
+        <tr><td>典型文件</td><td><code>*/queries.ts</code></td><td><code>*/mutations.ts</code></td></tr>
+        <tr><td>Key</td><td><code>QueryKeys</code></td><td><code>MutationKeys</code>（仅标识，非缓存主键）</td></tr>
+        <tr><td>成功后</td><td>自动更新缓存</td><td>常 <code>invalidateQueries</code> 或 <code>setQueryData</code></td></tr>
+        <tr><td>样本</td><td><code>useGetStartupConfig</code></td><td><code>useUpdateConversationMutation</code></td></tr>
+      </tbody>
+    </table>
+    <p>本课聚焦 Query；Mutation 的 invalidation 模式在后续「端到端小功能」课里练。</p>
+  </section>
+
+  <section>
+    <h2>完整链路（复习 + 延伸）</h2>
+    <div class="diagram">About.tsx
+  useGetStartupConfig()          ← client/src/data-provider  (本课)
+    ↓
+dataService.getStartupConfig() ← packages/data-provider     (上节课)
+    ↓
+endpoints.config() → request.get() → /api/config → config.js</div>
+  </section>
+
+  <section>
+    <h2>动手：在 IDE 找 3 个用法</h2>
+    <ol style="margin-left:1.25rem;color:#c8cdd8;margin-bottom:1rem">
+      <li>全局搜索 <code>useGetStartupConfig</code>，挑一个组件看 <code>data</code> 怎么消费</li>
+      <li>打开 <code>client/src/data-provider/index.ts</code>，确认 <code>Endpoints</code> 被 re-export</li>
+      <li>（可选）在 <code>useChatFunctions.ts</code> 搜 <code>queryClient.getQueryData</code> — 非 hook 场景下<strong>命令式读缓存</strong></li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>二开加新「读」API 的标准顺序</h2>
+    <div class="rule-box">
+      1. <code>packages/data-provider</code> — types + endpoints + data-service + <code>QueryKeys</code>（上节课）<br>
+      2. <code>client/src/data-provider/[Feature]/queries.ts</code> — 写 <code>useGetXxx</code><br>
+      3. <code>client/src/data-provider/[Feature]/index.ts</code> + 根 <code>index.ts</code> — export<br>
+      4. 组件里 <code>const { data, isLoading, error } = useGetXxx()</code>
+    </div>
+  </section>
+
+  <section class="quiz" id="quiz">
+    <h3>✓ 检查理解</h3>
+
+    <div class="quiz-item" data-q="1" data-answer="b">
+      <p><strong>1.</strong> <code>useGetStartupConfig</code> 的 queryFn 里应该调用什么？</p>
+      <div class="options">
+        <label><input type="radio" name="q1" value="a" /> 直接 <code>axios.get('/api/config')</code></label>
+        <label><input type="radio" name="q1" value="b" /> <code>dataService.getStartupConfig()</code></label>
+        <label><input type="radio" name="q1" value="c" /> <code>endpoints.config()</code> 然后自己 fetch</label>
+      </div>
+      <div class="feedback" id="fb1"></div>
+    </div>
+
+    <div class="quiz-item" data-q="2" data-answer="a">
+      <p><strong>2.</strong> <code>QueryKeys.startupConfig</code> 定义在哪个 workspace？</p>
+      <div class="options">
+        <label><input type="radio" name="q2" value="a" /> <code>packages/data-provider</code></label>
+        <label><input type="radio" name="q2" value="b" /> <code>client/src/data-provider</code></label>
+        <label><input type="radio" name="q2" value="c" /> <code>client/src/store</code></label>
+      </div>
+      <div class="feedback" id="fb2"></div>
+    </div>
+
+    <div class="quiz-item" data-q="3" data-answer="c">
+      <p><strong>3.</strong> <code>startupConfigKey</code> 把 <code>isAuthenticated</code> 编进 key，主要是为了？</p>
+      <div class="options">
+        <label><input type="radio" name="q3" value="a" /> 加快请求速度</label>
+        <label><input type="radio" name="q3" value="b" /> 满足 TypeScript 类型检查</label>
+        <label><input type="radio" name="q3" value="c" /> 避免登录前后读到错误的缓存配置</label>
+      </div>
+      <div class="feedback" id="fb3"></div>
+    </div>
+
+    <div class="quiz-item" data-q="4" data-answer="trace">
+      <p><strong>4.</strong> 组件 import hook 时，路径 alias <code>~/data-provider</code> 实际指向？（填目录名，如 <code>data-provider</code>）</p>
+      <input type="text" class="trace-input" id="traceAnswer" placeholder="client/src/..." autocomplete="off" />
+      <div class="feedback" id="fb4"></div>
+    </div>
+
+    <button class="check-btn" type="button" onclick="checkQuiz()">提交答案</button>
+  </section>
+
+  <section class="win-box" id="win">
+    <h3>🎉 本课完成</h3>
+    <p>你已经能把<strong>契约层 → Hook 层 → 组件</strong>串起来了。</p>
+    <p>下一课：<strong>Express 启动与路由挂载</strong> — 后端入口 <code>api/server/index.js</code> 如何接住 <code>/api/config</code>。</p>
+    <p>有疑问随时在 Cursor 问 Agent，说「我在学 0003」。</p>
+  </section>
+
+  <footer>
+    <p><strong>参考</strong>：<a href="../reference/0003-react-query-hooks.html">速查：Hook 层</a> · <a href="../reference/0002-data-provider-trilogy.html">三件套</a> · <a href="https://tanstack.com/query/latest/docs/framework/react/overview">TanStack Query 文档</a></p>
+    <p><strong>教师</strong>：完成后在对话中说「我完成了 0003」。</p>
+  </footer>
+
+  <script>
+    const radioAnswers = {
+      q1: { b: '对。Hook 只调 data-service，不重复 HTTP 逻辑。' },
+      q2: { a: '对。QueryKeys 在共享包，mutation  invalidate 时全项目统一。' },
+      q3: { c: '对。登录前后响应不同，必须分开缓存。' }
+    };
+    function checkQuiz() {
+      let allCorrect = true;
+      for (let i = 1; i <= 3; i++) {
+        const selected = document.querySelector(`input[name="q${i}"]:checked`);
+        const fb = document.getElementById(`fb${i}`);
+        const item = document.querySelector(`.quiz-item[data-q="${i}"]`);
+        const correct = item.dataset.answer;
+        fb.classList.add('show');
+        if (!selected) {
+          fb.className = 'feedback show no';
+          fb.textContent = '请选择一个选项。';
+          allCorrect = false;
+          continue;
+        }
+        if (selected.value === correct) {
+          fb.className = 'feedback show ok';
+          fb.textContent = '✓ ' + radioAnswers[`q${i}`][correct];
+        } else {
+          fb.className = 'feedback show no';
+          fb.textContent = '✗ 回顾上文 Hook 解剖与 QueryKey 说明。';
+          allCorrect = false;
+        }
+      }
+      const trace = document.getElementById('traceAnswer').value.trim().toLowerCase();
+      const fb4 = document.getElementById('fb4');
+      fb4.classList.add('show');
+      const ok = trace.includes('data-provider') && (trace.includes('client') || trace === 'data-provider');
+      if (ok) {
+        fb4.className = 'feedback show ok';
+        fb4.textContent = '✓ 对。~/data-provider → client/src/data-provider（Vite alias 映射）。';
+      } else {
+        fb4.className = 'feedback show no';
+        fb4.textContent = '✗ 提示：看 client 目录下，与 packages/data-provider 同名但路径不同的那个文件夹。';
+        allCorrect = false;
+      }
+      if (allCorrect) document.getElementById('win').classList.add('show');
+    }
+  </script>
+</body>
+</html>
