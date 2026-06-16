@@ -39,3 +39,15 @@ _Avoid_: 在 client 层手写字符串 key
 **Trace（追踪）**:
 从 UI hook 沿 data-service → endpoints → Express route → handler 逐文件跟读，验证你对一条 API 全链路的理解。二开基本功。
 _Avoid_: 只看一端（只看前端或只看后端）
+
+**Legacy api/server**:
+`api/server/index.js` 为 Express 总入口：启动 MongoDB、注册全局中间件、`app.use` 挂载各 feature Router、SPA fallback、`ErrorController`。二开加路由时改 `routes/` + `index.js` 挂载行。
+_Avoid_: 在 index.js 里写大段业务逻辑
+
+**Router 挂载**:
+`app.use('/api/xxx', middleware..., routes.xxx)` — URL 前缀与 `api-endpoints.ts` 对齐；`routes/xxx.js` 内 `router.get('/')` 对应 `GET /api/xxx`。
+_Avoid_: 在 Router 里重复写完整 `/api/...` 路径（除非故意）
+
+**serverReady**:
+`index.js` 在 `listen` 回调里完成 MCP、migrations 后置为 `true`。此前 `POST /api/agents/chat` 返回 503，防止半初始化服务器处理聊天。
+_Avoid_: 以为 listen 成功就等于所有子系统就绪

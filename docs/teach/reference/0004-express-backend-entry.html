@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ref — Express 后端入口速查</title>
+  <style>
+    @media print { body { background: #fff; color: #000; } .no-print { display: none; } }
+    body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; font-size: 0.9rem; }
+    h1 { font-size: 1.25rem; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+    th, td { border: 1px solid #ccc; padding: 0.4rem 0.5rem; text-align: left; vertical-align: top; }
+    th { background: #f5f5f5; }
+    .flow { font-family: ui-monospace, monospace; font-size: 0.78rem; background: #f8f8f8; padding: 0.75rem; border-left: 3px solid #f59e0b; margin: 1rem 0; white-space: pre-wrap; }
+    .rule { background: #fffbeb; border-left: 3px solid #f59e0b; padding: 0.75rem; margin: 1rem 0; font-size: 0.85rem; }
+    code { font-size: 0.85em; }
+  </style>
+</head>
+<body>
+  <h1>Express 后端入口速查</h1>
+  <p class="no-print"><a href="../lessons/0004-express-backend-entry.html">← 回到 Lesson 0004</a></p>
+
+  <table>
+    <tr><th>层</th><th>路径</th><th>职责</th></tr>
+    <tr>
+      <td>入口</td>
+      <td><code>api/server/index.js</code></td>
+      <td>启动、全局中间件、挂载路由、SPA fallback、错误处理</td>
+    </tr>
+    <tr>
+      <td>路由表</td>
+      <td><code>api/server/routes/index.js</code></td>
+      <td>聚合各 feature 的 Router</td>
+    </tr>
+    <tr>
+      <td>Handler</td>
+      <td><code>api/server/routes/*.js</code></td>
+      <td>薄包装：解析 req → 调服务 → res.json/send</td>
+    </tr>
+    <tr>
+      <td>业务逻辑</td>
+      <td><code>packages/api</code></td>
+      <td>TypeScript 服务、中间件、工具（<code>@librechat/api</code>）</td>
+    </tr>
+  </table>
+
+  <div class="flow">启动阶段（startServer，一次）
+  connectDb → getAppConfig → 注册中间件 → 挂载路由 → listen
+  → MCP / migrations → serverReady = true
+
+请求阶段（每个 HTTP 请求）
+  全局中间件链 → 路由级中间件 → Router handler → 响应
+  未匹配 /api/* → apiNotFound
+  未匹配其他 → SPA index.html
+  抛错 → ErrorController</div>
+
+  <table>
+    <tr><th>挂载模式</th><th>示例</th></tr>
+    <tr><td>仅 Router</td><td><code>app.use('/api/messages', routes.messages)</code></td></tr>
+    <tr><td>路由级中间件 + Router</td><td><code>app.use('/api/config', preAuthTenantMiddleware, optionalJwtAuth, routes.config)</code></td></tr>
+    <tr><td>单路由门控</td><td><code>app.use('/api/agents/chat', rejectChatStartsUntilReady)</code></td></tr>
+  </table>
+
+  <div class="rule">
+    <strong>加新 REST API：</strong><br>
+    packages/data-provider（契约）→ packages/api（逻辑，如需）→ api/server/routes/xxx.js（handler）→ index.js 挂载 <code>app.use('/api/xxx', ...)</code>
+  </div>
+</body>
+</html>
