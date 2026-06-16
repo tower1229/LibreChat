@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ref — 聊天消息 Trace 速查</title>
+  <style>
+    @media print { body { background: #fff; color: #000; } .no-print { display: none; } }
+    body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; font-size: 0.9rem; }
+    h1 { font-size: 1.25rem; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+    th, td { border: 1px solid #ccc; padding: 0.4rem 0.5rem; text-align: left; vertical-align: top; }
+    th { background: #f5f5f5; }
+    .flow { font-family: ui-monospace, monospace; font-size: 0.75rem; background: #f8f8f8; padding: 0.75rem; border-left: 3px solid #10a37f; margin: 1rem 0; white-space: pre-wrap; }
+    .rule { background: #f0fdf4; border-left: 3px solid #10a37f; padding: 0.75rem; margin: 1rem 0; font-size: 0.85rem; }
+    code { font-size: 0.85em; }
+  </style>
+</head>
+<body>
+  <h1>聊天消息 Trace 速查（Agents 主路径）</h1>
+  <p class="no-print"><a href="../lessons/0005-message-trace.html">← 回到 Lesson 0005</a></p>
+
+  <div class="flow">① 提交
+ChatForm → useSubmitMessage → useChatFunctions.ask
+  → 乐观更新 messages + setSubmission(TSubmission)
+
+② 消费 submission
+ChatView → useAdaptiveSSE → useResumableSSE
+
+③ 两阶段 HTTP
+POST /api/agents/chat/agents  →  { streamId, conversationId }
+GET  /api/agents/chat/stream/:streamId  →  SSE events
+
+④ 后端
+routes/agents/chat.js → ResumableAgentController
+  → GenerationJobManager.createJob
+  → initializeClient → client.sendMessage (BaseClient)
+  → emitChunk → SSE
+  → saveMessage (packages/data-schemas) → final event</div>
+
+  <table>
+    <tr><th>SSE event 形态</th><th>前端处理</th></tr>
+    <tr><td><code>{ created, message }</code></td><td>createdHandler — 用户消息落库 ID 同步</td></tr>
+    <tr><td><code>{ type, text, index }</code></td><td>contentHandler — 流式打字</td></tr>
+    <tr><td><code>{ final: true, ... }</code></td><td>finalHandler — 结束、刷新余额等</td></tr>
+    <tr><td><code>{ event: 'title' }</code></td><td>titleHandler — 会话标题</td></tr>
+  </table>
+
+  <table>
+    <tr><th>对比</th><th>Agents（默认）</th><th>Assistants</th></tr>
+    <tr><td>Hook</td><td>useResumableSSE</td><td>useSSE（单 POST+SSE）</td></tr>
+    <tr><td>可断线恢复</td><td>是</td><td>否</td></tr>
+    <tr><td>streamId</td><td>= conversationId</td><td>—</td></tr>
+  </table>
+
+  <div class="rule">
+    <strong>调试口诀：</strong>Network 里先看 POST 是否返回 streamId，再看 GET stream 的 EventStream；后端日志搜 <code>ResumableAgentController</code> / <code>AgentStream</code>。
+  </div>
+</body>
+</html>

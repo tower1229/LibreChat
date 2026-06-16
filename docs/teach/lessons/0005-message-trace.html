@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson 0005 — 一条消息的端到端 Trace</title>
+  <style>
+    :root {
+      --bg: #0f1117; --surface: #1a1d27; --border: #2d3348;
+      --text: #e8eaef; --muted: #8b92a8; --accent: #10a37f;
+      --frontend: #3b82f6; --shared: #a855f7; --backend: #f59e0b;
+      --font: "Segoe UI", system-ui, sans-serif;
+      --mono: "Cascadia Code", Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.65; padding: 2rem 1.5rem 4rem; max-width: 52rem; margin: 0 auto; }
+    header { border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; }
+    .lesson-meta { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.5rem; }
+    h1 { font-size: 1.75rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .mission-tag { display: inline-block; font-size: 0.85rem; color: var(--accent); background: rgba(16,163,127,.12); padding: .25rem .65rem; border-radius: 4px; margin-top: .5rem; }
+    h2 { font-size: 1.15rem; font-weight: 600; margin: 2rem 0 .75rem; }
+    p { margin-bottom: 1rem; color: #c8cdd8; }
+    a { color: var(--accent); }
+    .diagram { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin: 1.25rem 0; font-family: var(--mono); font-size: 0.76rem; line-height: 1.55; overflow-x: auto; white-space: pre; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+    th, td { border: 1px solid var(--border); padding: 0.6rem 0.75rem; text-align: left; vertical-align: top; }
+    th { background: var(--surface); color: var(--muted); font-weight: 500; }
+    .cite { font-size: 0.85rem; color: var(--muted); }
+    .step { display: flex; gap: .75rem; margin: .75rem 0; align-items: flex-start; }
+    .step-num { flex-shrink: 0; width: 1.6rem; height: 1.6rem; background: var(--accent); color: #fff; border-radius: 50%; font-size: .8rem; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+    .step-body { flex: 1; }
+    .step-body code { font-family: var(--mono); font-size: 0.82em; color: #a5f3d0; }
+    .rule-box { background: rgba(16,163,127,.08); border-left: 3px solid var(--accent); padding: 1rem 1.25rem; margin: 1.25rem 0; border-radius: 0 6px 6px 0; }
+    .layer-fe { color: var(--frontend); }
+    .layer-be { color: var(--backend); }
+    .phase { display: inline-block; font-size: 0.75rem; padding: 0.15rem 0.5rem; border-radius: 4px; margin-right: 0.35rem; }
+    .phase-a { background: rgba(59,130,246,.15); color: #93c5fd; }
+    .phase-b { background: rgba(245,158,11,.15); color: #fcd34d; }
+    .quiz { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin: 1.5rem 0; }
+    .quiz h3 { font-size: 1rem; margin-bottom: 1rem; }
+    .quiz-item { margin-bottom: 1.25rem; }
+    .options { display: flex; flex-direction: column; gap: .4rem; }
+    .options label { display: flex; gap: .5rem; cursor: pointer; padding: .5rem .65rem; border-radius: 6px; border: 1px solid transparent; }
+    .options label:hover { background: rgba(255,255,255,.04); border-color: var(--border); }
+    .feedback { display: none; margin-top: .5rem; font-size: .9rem; padding: .5rem .75rem; border-radius: 4px; }
+    .feedback.show { display: block; }
+    .feedback.ok { background: rgba(34,197,94,.12); color: #86efac; }
+    .feedback.no { background: rgba(239,68,68,.12); color: #fca5a5; }
+    .check-btn { background: var(--accent); color: #fff; border: none; padding: .6rem 1.25rem; border-radius: 6px; font-size: .95rem; cursor: pointer; margin-top: .5rem; }
+    .check-btn:hover { filter: brightness(1.1); }
+    .win-box { display: none; background: rgba(16,163,127,.1); border: 1px solid var(--accent); border-radius: 8px; padding: 1.25rem; margin: 1.5rem 0; }
+    .win-box.show { display: block; }
+    .trace-input { width: 100%; background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: .5rem .75rem; border-radius: 6px; font-family: var(--mono); font-size: .85rem; margin-top: .35rem; }
+    footer { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+    .open-cmd { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: .75rem 1rem; font-family: var(--mono); font-size: .85rem; margin: 1rem 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="lesson-meta">Lesson 0005 · 约 40 分钟</div>
+    <h1>一条消息的端到端 Trace</h1>
+    <span class="mission-tag">Mission：从点击发送到 MongoDB 落库</span>
+    <p class="cite" style="margin-top:1rem"><a href="0004-express-backend-entry.html">← Lesson 0004</a> · <a href="../reference/0005-message-trace.html">速查表</a></p>
+  </header>
+
+  <section>
+    <h2>本课只学一件事</h2>
+    <p>把前四课拼起来：<strong>用户点发送后，代码如何穿过前端、HTTP、后端、LLM，再流式回到 UI 并写入数据库？</strong></p>
+    <p>样本路径：<strong>Agents 端点</strong>（LibreChat 默认聊天模式）。Assistants 仍走旧的单连接 SSE，本课末尾对比即可。</p>
+  </section>
+
+  <section>
+    <h2>总览：两阶段可恢复流</h2>
+    <p>现代 Agents 聊天不是「一个 POST 一直挂着收流」，而是<strong>先启动任务，再订阅 SSE</strong> — 这样刷新页面、断网重连都能恢复。</p>
+    <div class="diagram"><span class="phase phase-a">前端</span>
+用户点发送
+  → ask() 构建 TSubmission，乐观更新 UI
+  → Recoil submission 触发 useResumableSSE
+
+<span class="phase phase-b">HTTP ①</span>
+POST /api/agents/chat/agents
+  ← { streamId, conversationId, status: "started" }
+
+<span class="phase phase-b">HTTP ②</span>
+GET /api/agents/chat/stream/:streamId  (SSE)
+  ← event: message  data: { type, text, index }  …逐字
+  ← event: message  data: { final: true, … }    …结束
+
+<span class="phase phase-b">后端</span>
+GenerationJobManager 在后台跑 client.sendMessage()
+  → emitChunk → SSE 订阅者
+  → saveMessage() → MongoDB
+  → final event</div>
+    <p class="cite">关键设计：<code>streamId === conversationId</code>（新会话时后端生成 UUID）。来源：<code>api/server/controllers/agents/request.js</code></p>
+  </section>
+
+  <section>
+    <h2>前端 4 站 Trace</h2>
+
+    <div class="step"><span class="step-num">1</span><div class="step-body"><strong>表单提交</strong><br><code>client/src/components/Chat/Input/ChatForm.tsx</code><br><code>useSubmitMessage</code> → 调用 context 里的 <code>ask({ text })</code></div></div>
+    <div class="step"><span class="step-num">2</span><div class="step-body"><strong>构建 submission</strong><br><code>client/src/hooks/Chat/useChatFunctions.ts</code> → <code>ask()</code><br>生成 <code>userMessage</code> + <code>initialResponse</code> 占位，<code>setMessages([...])</code> 乐观渲染，<code>setSubmission(submission)</code></div></div>
+    <div class="step"><span class="step-num">3</span><div class="step-body"><strong>监听 submission</strong><br><code>client/src/components/Chat/ChatView.tsx</code><br><code>useRecoilValue(store.submissionByIndex)</code> → <code>useAdaptiveSSE(submission)</code></div></div>
+    <div class="step"><span class="step-num">4</span><div class="step-body"><strong>SSE 双请求</strong><br><code>client/src/hooks/SSE/useResumableSSE.ts</code><br><code>createPayload(submission)</code> → <code>request.post(url, payload)</code> 拿 streamId → <code>EventSource</code> 连 <code>/chat/stream/:streamId</code></div></div>
+
+    <p><strong>createPayload</strong> 把 submission 压成后端认识的 body，并算出 POST URL：</p>
+    <div class="diagram">// packages/data-provider/src/createPayload.ts
+server = `/api/agents/chat/agents`   // EndpointURLs[agents] + endpoint
+payload = { ...userMessage, ...endpointOption, conversationId, ... }</div>
+  </section>
+
+  <section>
+    <h2>后端 5 站 Trace</h2>
+
+    <div class="step"><span class="step-num">5</span><div class="step-body"><strong>路由入口</strong><br><code>api/server/routes/agents/chat.js</code><br>中间件链：moderateText → 权限检查 → <code>buildEndpointOption</code> → <code>router.post('/')</code></div></div>
+    <div class="step"><span class="step-num">6</span><div class="step-body"><strong>控制器</strong><br><code>api/server/controllers/agents/request.js</code> → <code>ResumableAgentController</code><br><code>GenerationJobManager.createJob(streamId)</code> → 立刻 <code>res.json({ streamId })</code>，生成在后台继续</div></div>
+    <div class="step"><span class="step-num">7</span><div class="step-body"><strong>SSE 订阅</strong><br><code>api/server/routes/agents/index.js</code><br><code>GET /chat/stream/:streamId</code> → <code>GenerationJobManager.subscribe</code> → <code>res.write('event: message\ndata: ...')</code></div></div>
+    <div class="step"><span class="step-num">8</span><div class="step-body"><strong>生成逻辑</strong><br><code>initializeClient</code> → <code>client.sendMessage(text, opts)</code><br><code>api/app/clients/BaseClient.js</code> — 调 LLM / Agent graph，<code>onProgress</code> 推内容块</div></div>
+    <div class="step"><span class="step-num">9</span><div class="step-body"><strong>落库</strong><br><code>saveMessage(reqCtx, message)</code> — 来自 <code>~/models</code>，实现在 <code>packages/data-schemas/src/methods/message.ts</code><br>顺序：<strong>先 saveMessage，再 emit final event</strong>（避免客户端 refetch 时 DB 还没写完）</div></div>
+  </section>
+
+  <section>
+    <h2>SSE 事件长什么样</h2>
+    <p><code>useResumableSSE</code> / <code>useEventHandlers</code> 按 JSON 字段分支处理（同一 <code>message</code> 事件名下）：</p>
+    <table>
+      <thead><tr><th>data 特征</th><th>含义</th><th>UI 效果</th></tr></thead>
+      <tbody>
+        <tr><td><code>{ created: true, message }</code></td><td>用户消息已在服务端创建</td><td>同步真实 messageId</td></tr>
+        <tr><td><code>{ type, text, index }</code></td><td>内容块增量</td><td>流式打字、工具调用展示</td></tr>
+        <tr><td><code>{ event: 'title', title }</code></td><td>新会话标题</td><td>侧边栏标题更新</td></tr>
+        <tr><td><code>{ final: true, ... }</code></td><td>生成结束</td><td>停止按钮消失、可发下一条</td></tr>
+      </tbody>
+    </table>
+    <p class="cite">Wire 格式：<a href="https://html.spec.whatwg.org/multipage/server-sent-events.html">Server-Sent Events</a> — <code>event:</code> + <code>data:</code> 行，双换行分隔。</p>
+  </section>
+
+  <section>
+    <h2>动手：DevTools 里跟一条真实请求</h2>
+    <p>本地跑起前后端，打开聊天页，发一条短消息，在 Network 面板：</p>
+    <ol style="margin:0 0 1rem 1.25rem;color:#c8cdd8">
+      <li>找到 <code>POST …/api/agents/chat/agents</code> — Response 应是 JSON，含 <code>streamId</code></li>
+      <li>找到 <code>GET …/api/agents/chat/stream/&lt;uuid&gt;</code> — Type 为 <code>eventsource</code>，EventStream 标签页看逐条 <code>message</code> 事件</li>
+      <li>生成结束后，刷新页面 — 消息仍在（已 <code>saveMessage</code> 进 MongoDB）</li>
+    </ol>
+    <div class="open-cmd"># 终端 A
+npm run backend:dev
+# 终端 B
+npm run frontend:dev
+# 浏览器 http://localhost:3090</div>
+    <p class="cite">后端日志可搜：<code>[ResumableAgentController]</code>、<code>[AgentStream]</code></p>
+  </section>
+
+  <section>
+    <h2>和 Assistants 的对比（知道即可）</h2>
+    <table>
+      <thead><tr><th></th><th>Agents（本课）</th><th>Assistants</th></tr></thead>
+      <tbody>
+        <tr><td>Hook</td><td><code>useResumableSSE</code></td><td><code>useSSE</code>（sse.js 单 POST 长连接）</td></tr>
+        <tr><td>选择逻辑</td><td colspan="2"><code>useAdaptiveSSE</code> — <code>isAssistantsEndpoint</code> 为真时走 legacy</td></tr>
+        <tr><td>断线恢复</td><td>支持</td><td>不支持</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <div class="rule-box">
+      <strong>二开时最常改的文件：</strong><br>
+      改 UI 行为 → <code>useEventHandlers.ts</code> / 消息组件<br>
+      改请求体字段 → <code>createPayload.ts</code> + 后端 controller 读 <code>req.body</code><br>
+      改生成逻辑 → <code>packages/api</code> 或 <code>BaseClient</code> 子类<br>
+      改落库字段 → <code>packages/data-schemas</code> message schema + <code>saveMessage</code>
+    </div>
+  </section>
+
+  <section class="quiz">
+    <h3>自测</h3>
+
+    <div class="quiz-item" data-q="1" data-answer="b">
+      <p><strong>1.</strong> Agents 聊天启动后，客户端用什么拿 streamId？</p>
+      <div class="options">
+        <label><input type="radio" name="q1" value="a" /> a) GET /api/agents/chat/stream 直接开流</label>
+        <label><input type="radio" name="q1" value="b" /> b) POST /api/agents/chat/agents，响应 JSON 含 streamId</label>
+        <label><input type="radio" name="q1" value="c" /> c) WebSocket 握手</label>
+      </div>
+      <div class="feedback" id="fb1"></div>
+    </div>
+
+    <div class="quiz-item" data-q="2" data-answer="a">
+      <p><strong>2.</strong> 前端「乐观 UI」发生在哪一步？</p>
+      <div class="options">
+        <label><input type="radio" name="q2" value="a" /> a) useChatFunctions.ask 里 setMessages，在 SSE 返回之前</label>
+        <label><input type="radio" name="q2" value="b" /> b) finalHandler 收到 final 事件之后</label>
+        <label><input type="radio" name="q2" value="c" /> c) saveMessage 写入 MongoDB 之后</label>
+      </div>
+      <div class="feedback" id="fb2"></div>
+    </div>
+
+    <div class="quiz-item" data-q="3" data-answer="c">
+      <p><strong>3.</strong> 为什么后端要先 saveMessage 再 emit final？</p>
+      <div class="options">
+        <label><input type="radio" name="q3" value="a" /> a) MongoDB 要求</label>
+        <label><input type="radio" name="q3" value="b" /> b) 为了压缩 SSE  payload</label>
+        <label><input type="radio" name="q3" value="c" /> c) 避免客户端紧跟的下一条消息 refetch 时 DB 尚未写入</label>
+      </div>
+      <div class="feedback" id="fb3"></div>
+    </div>
+
+    <div class="quiz-item" data-q="4">
+      <p><strong>4.</strong> 填空：监听 Recoil <code>submission</code> 并分发 SSE 的 adaptive hook 叫？（如 useAdaptiveSSE）</p>
+      <input type="text" class="trace-input" id="traceAnswer" placeholder="hook 名称" />
+      <div class="feedback" id="fb4"></div>
+    </div>
+
+    <button class="check-btn" onclick="checkQuiz()">检查答案</button>
+
+    <div class="win-box" id="win">
+      <p><strong>本课完成。</strong> 你已能 trace 一条 Agents 消息从点击发送到 MongoDB 落库的完整路径。</p>
+      <p>下一课预告：<strong>端到端小功能样板</strong> — 按项目规范加 types + endpoint + data-service + hook + UI + 后端 handler。</p>
+    </div>
+  </section>
+
+  <footer>
+    <p><strong>打开本课</strong>：<code>open docs/teach/lessons/0005-message-trace.html</code></p>
+    <p><strong>参考</strong>：<a href="../reference/0005-message-trace.html">速查：消息 Trace</a> · <a href="../reference/0004-express-backend-entry.html">后端入口</a> · <a href="https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events">MDN — SSE</a></p>
+    <p><strong>教师</strong>：完成后在对话中说「我完成了 0005」。</p>
+  </footer>
+
+  <script>
+    const radioAnswers = {
+      q1: { b: '对。两阶段：POST 启动任务，GET stream 订阅 SSE。' },
+      q2: { a: '对。用户消息和 assistant 占位先上屏，再等服务端流式填充。' },
+      q3: { c: '对。注释写在 request.js 里，防止 parentMessageId 竞态。' }
+    };
+    function checkQuiz() {
+      let allCorrect = true;
+      for (let i = 1; i <= 3; i++) {
+        const selected = document.querySelector(`input[name="q${i}"]:checked`);
+        const fb = document.getElementById(`fb${i}`);
+        const item = document.querySelector(`.quiz-item[data-q="${i}"]`);
+        const correct = item.dataset.answer;
+        fb.classList.add('show');
+        if (!selected) {
+          fb.className = 'feedback show no';
+          fb.textContent = '请选择一个选项。';
+          allCorrect = false;
+          continue;
+        }
+        if (selected.value === correct) {
+          fb.className = 'feedback show ok';
+          fb.textContent = '✓ ' + radioAnswers[`q${i}`][correct];
+        } else {
+          fb.className = 'feedback show no';
+          fb.textContent = '✗ 回顾上文总览图与前端 4 站。';
+          allCorrect = false;
+        }
+      }
+      const trace = document.getElementById('traceAnswer').value.trim();
+      const fb4 = document.getElementById('fb4');
+      fb4.classList.add('show');
+      const ok = trace.toLowerCase() === 'useadaptivesse';
+      if (ok) {
+        fb4.className = 'feedback show ok';
+        fb4.textContent = '✓ 对。ChatView 里 useAdaptiveSSE 在 Agents / Assistants 间切换。';
+      } else {
+        fb4.className = 'feedback show no';
+        fb4.textContent = '✗ 提示：ChatView.tsx 里 import 的那个 adaptive hook。';
+        allCorrect = false;
+      }
+      if (allCorrect) document.getElementById('win').classList.add('show');
+    }
+  </script>
+</body>
+</html>

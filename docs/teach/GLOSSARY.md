@@ -51,3 +51,15 @@ _Avoid_: 在 Router 里重复写完整 `/api/...` 路径（除非故意）
 **serverReady**:
 `index.js` 在 `listen` 回调里完成 MCP、migrations 后置为 `true`。此前 `POST /api/agents/chat` 返回 503，防止半初始化服务器处理聊天。
 _Avoid_: 以为 listen 成功就等于所有子系统就绪
+
+**TSubmission**:
+`useChatFunctions.ask` 构建的提交对象，经 Recoil `submissionByIndex` 传给 SSE hook。含 `userMessage`、`endpointOption`、`conversation`、`initialResponse` 等。
+_Avoid_: 与已落库的 `TMessage` 混淆
+
+**Resumable SSE（可恢复流）**:
+Agents 默认路径：`POST` 返回 `{ streamId }`，再 `GET /api/agents/chat/stream/:streamId` 订阅 SSE。生成由 `GenerationJobManager` 管理，与 HTTP 连接解耦。
+_Avoid_: 与 Assistants 的单 POST 长连接 SSE 混为一谈
+
+**GenerationJobManager**:
+`packages/api` 中的流任务管理器：createJob、emitChunk、subscribe、completeJob。streamId 通常等于 conversationId。
+_Avoid_: 在 route handler 里手写 res.write 而不经 JobManager（Agents 路径）
