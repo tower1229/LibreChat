@@ -63,3 +63,7 @@ _Avoid_: 与 Assistants 的单 POST 长连接 SSE 混为一谈
 **GenerationJobManager**:
 `packages/api` 中的流任务管理器：createJob、emitChunk、subscribe、completeJob。streamId 通常等于 conversationId。
 _Avoid_: 在 route handler 里手写 res.write 而不经 JobManager（Agents 路径）
+
+**契约先行**:
+二开加 API 时先改 `packages/data-provider`（types → endpoints → data-service → keys），`npm run build:data-provider` 后再动后端路由与前端 hook。
+_Avoid_: 先写 route 再补 types（易导致前后端字段漂移）

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson 0006 — 端到端功能样板</title>
+  <style>
+    :root {
+      --bg: #0f1117; --surface: #1a1d27; --border: #2d3348;
+      --text: #e8eaef; --muted: #8b92a8; --accent: #10a37f;
+      --frontend: #3b82f6; --shared: #a855f7; --backend: #f59e0b;
+      --font: "Segoe UI", system-ui, sans-serif;
+      --mono: "Cascadia Code", Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.65; padding: 2rem 1.5rem 4rem; max-width: 52rem; margin: 0 auto; }
+    header { border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; }
+    .lesson-meta { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.5rem; }
+    h1 { font-size: 1.75rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .mission-tag { display: inline-block; font-size: 0.85rem; color: var(--accent); background: rgba(16,163,127,.12); padding: .25rem .65rem; border-radius: 4px; margin-top: .5rem; }
+    h2 { font-size: 1.15rem; font-weight: 600; margin: 2rem 0 .75rem; }
+    p { margin-bottom: 1rem; color: #c8cdd8; }
+    a { color: var(--accent); }
+    .diagram { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin: 1.25rem 0; font-family: var(--mono); font-size: 0.76rem; line-height: 1.55; overflow-x: auto; white-space: pre; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+    th, td { border: 1px solid var(--border); padding: 0.6rem 0.75rem; text-align: left; vertical-align: top; }
+    th { background: var(--surface); color: var(--muted); font-weight: 500; }
+    .cite { font-size: 0.85rem; color: var(--muted); }
+    .step { display: flex; gap: .75rem; margin: .75rem 0; align-items: flex-start; }
+    .step-num { flex-shrink: 0; width: 1.6rem; height: 1.6rem; background: var(--accent); color: #fff; border-radius: 50%; font-size: .8rem; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+    .step-body { flex: 1; }
+    .step-body code { font-family: var(--mono); font-size: 0.82em; color: #a5f3d0; }
+    .rule-box { background: rgba(16,163,127,.08); border-left: 3px solid var(--accent); padding: 1rem 1.25rem; margin: 1.25rem 0; border-radius: 0 6px 6px 0; }
+    .layer-fe { color: var(--frontend); }
+    .layer-sh { color: var(--shared); }
+    .layer-be { color: var(--backend); }
+    .quiz { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin: 1.5rem 0; }
+    .quiz h3 { font-size: 1rem; margin-bottom: 1rem; }
+    .quiz-item { margin-bottom: 1.25rem; }
+    .options { display: flex; flex-direction: column; gap: .4rem; }
+    .options label { display: flex; gap: .5rem; cursor: pointer; padding: .5rem .65rem; border-radius: 6px; border: 1px solid transparent; }
+    .options label:hover { background: rgba(255,255,255,.04); border-color: var(--border); }
+    .feedback { display: none; margin-top: .5rem; font-size: .9rem; padding: .5rem .75rem; border-radius: 4px; }
+    .feedback.show { display: block; }
+    .feedback.ok { background: rgba(34,197,94,.12); color: #86efac; }
+    .feedback.no { background: rgba(239,68,68,.12); color: #fca5a5; }
+    .check-btn { background: var(--accent); color: #fff; border: none; padding: .6rem 1.25rem; border-radius: 6px; font-size: .95rem; cursor: pointer; margin-top: .5rem; }
+    .check-btn:hover { filter: brightness(1.1); }
+    .win-box { display: none; background: rgba(16,163,127,.1); border: 1px solid var(--accent); border-radius: 8px; padding: 1.25rem; margin: 1.5rem 0; }
+    .win-box.show { display: block; }
+    .trace-input { width: 100%; background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: .5rem .75rem; border-radius: 6px; font-family: var(--mono); font-size: .85rem; margin-top: .35rem; }
+    .sortable { display: flex; flex-direction: column; gap: .4rem; }
+    .sortable label { display: flex; gap: .5rem; align-items: center; padding: .45rem .65rem; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: .88rem; }
+    footer { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+    .open-cmd { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: .75rem 1rem; font-family: var(--mono); font-size: .85rem; margin: 1rem 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="lesson-meta">Lesson 0006 · 约 35 分钟</div>
+    <h1>端到端功能样板</h1>
+    <span class="mission-tag">Mission：能独立交付一条规范的新 API</span>
+    <p class="cite" style="margin-top:1rem"><a href="0005-message-trace.html">← Lesson 0005</a> · <a href="../reference/0006-feature-checklist.html">检查清单</a></p>
+  </header>
+
+  <section>
+    <h2>本课只学一件事</h2>
+    <p>前五课分别讲了地图、契约层、Hook、后端入口、消息流。本课把它们<strong>收成一张可复用的检查清单</strong>。</p>
+    <p>用仓库里真实的小功能 <strong><code>GET /api/banner</code></strong>（顶部公告条）走一遍完整链路 — 足够小，但覆盖了「types → endpoint → data-service → hook → UI → route → DB」全栈。</p>
+  </section>
+
+  <section>
+    <h2>功能全景</h2>
+    <div class="diagram">Banner.tsx
+  → useGetBannerQuery()          client/data-provider/Misc/queries.ts
+    → dataService.getBanner()    packages/data-provider
+      → GET /api/banner          api-endpoints.ts
+        → routes/banner.js       optionalJwtAuth → getBanner(req.user)
+          → data-schemas         Banner.findOne({ displayFrom, displayTo, ... })
+            → MongoDB banners 集合</div>
+    <p>登录页和聊天页顶部都可能出现公告；未登录时仅展示 <code>isPublic: true</code> 的 banner。</p>
+  </section>
+
+  <section>
+    <h2>12 步检查清单（只读 GET）</h2>
+    <p>二开加类似 API 时，<strong>按此顺序</strong>改文件，减少返工：</p>
+
+    <table>
+      <thead><tr><th>#</th><th>层</th><th>文件</th><th>做什么</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td class="layer-sh">类型</td><td><code>packages/data-provider/src/schemas.ts</code></td><td><code>tBannerSchema</code> / <code>TBanner</code></td></tr>
+        <tr><td>2</td><td class="layer-sh">类型</td><td><code>packages/data-provider/src/types.ts</code></td><td><code>TBannerResponse = TBanner | null</code></td></tr>
+        <tr><td>3</td><td class="layer-sh">路径</td><td><code>api-endpoints.ts</code></td><td><code>export const banner = () => .../api/banner</code></td></tr>
+        <tr><td>4</td><td class="layer-sh">调用</td><td><code>data-service.ts</code></td><td><code>getBanner(): request.get(endpoints.banner())</code></td></tr>
+        <tr><td>5</td><td class="layer-sh">缓存键</td><td><code>keys.ts</code></td><td><code>QueryKeys.banner = 'banner'</code></td></tr>
+        <tr><td>6</td><td class="layer-sh">构建</td><td>项目根</td><td><code>npm run build:data-provider</code></td></tr>
+        <tr><td>7</td><td class="layer-be">DB</td><td><code>packages/data-schemas/src/methods/banner.ts</code></td><td><code>getBanner(user)</code> — Mongo 查询</td></tr>
+        <tr><td>8</td><td class="layer-be">路由</td><td><code>api/server/routes/banner.js</code></td><td>薄 handler，~15 行</td></tr>
+        <tr><td>9</td><td class="layer-be">挂载</td><td><code>routes/index.js</code> + <code>index.js</code></td><td><code>app.use('/api/banner', routes.banner)</code></td></tr>
+        <tr><td>10</td><td class="layer-fe">Hook</td><td><code>client/src/data-provider/Misc/queries.ts</code></td><td><code>useGetBannerQuery</code></td></tr>
+        <tr><td>11</td><td class="layer-fe">导出</td><td><code>client/src/data-provider/index.ts</code></td><td><code>export * from './Misc'</code></td></tr>
+        <tr><td>12</td><td class="layer-fe">UI</td><td><code>client/src/components/Banners/Banner.tsx</code></td><td>消费 hook，渲染 HTML 公告</td></tr>
+      </tbody>
+    </table>
+
+    <div class="rule-box">
+      <strong>口诀：契约先行。</strong>先改 <code>packages/data-provider</code>，再动后端和前端。共享 types 变更后必须 <code>npm run build:data-provider</code>，否则 client/api 读到旧类型。
+    </div>
+  </section>
+
+  <section>
+    <h2>三层代码该写在哪</h2>
+    <table>
+      <thead><tr><th>位置</th><th>何时用</th><th>Banner 里的例子</th></tr></thead>
+      <tbody>
+        <tr><td><code>api/server/routes/*.js</code></td><td>HTTP 胶水：鉴权中间件 + 调服务 + 返回</td><td><code>router.get('/', optionalJwtAuth, ...)</code></td></tr>
+        <tr><td><code>packages/data-schemas</code></td><td>MongoDB model / method</td><td><code>createBannerMethods</code> → <code>Banner.findOne</code></td></tr>
+        <tr><td><code>packages/api</code></td><td>复杂可复用 TS 逻辑、中间件、服务</td><td>Banner <strong>未用</strong> — 简单查询不必进 api 包</td></tr>
+      </tbody>
+    </table>
+    <p>规则来自 <a href="../../CLAUDE.md">CLAUDE.md</a>：新<strong>业务</strong>逻辑优先 <code>packages/api</code>；但一条 <code>findOne</code> 放在 data-schemas methods 里完全合理。</p>
+  </section>
+
+  <section>
+    <h2>真实代码片段</h2>
+
+    <p><strong>契约层</strong></p>
+    <div class="diagram">// data-service.ts
+export function getBanner(): Promise&lt;t.TBannerResponse&gt; {
+  return request.get(endpoints.banner());
+}</div>
+
+    <p><strong>Hook 层</strong> — 注意 <code>queriesEnabled</code> 门控（登录流程完成前不发请求）：</p>
+    <div class="diagram">// client/src/data-provider/Misc/queries.ts
+return useQuery&lt;t.TBannerResponse&gt;(
+  [QueryKeys.banner],
+  () => dataService.getBanner(),
+  { refetchOnMount: false, enabled: ... && queriesEnabled },
+);</div>
+
+    <p><strong>薄路由</strong></p>
+    <div class="diagram">// api/server/routes/banner.js
+router.get('/', optionalJwtAuth, async (req, res) => {
+  res.status(200).send(await getBanner(req.user));
+});</div>
+  </section>
+
+  <section>
+    <h2>附录：写操作多 3 步</h2>
+    <p>若要加 <code>POST /api/xxx</code> 修改数据，在 GET 清单之上追加：</p>
+    <table>
+      <thead><tr><th>追加</th><th>文件</th></tr></thead>
+      <tbody>
+        <tr><td><code>dataService.updateXxx()</code></td><td><code>data-service.ts</code></td></tr>
+        <tr><td><code>MutationKeys.xxx</code></td><td><code>keys.ts</code></td></tr>
+        <tr><td><code>useUpdateXxx</code> — <code>useMutation</code> + <code>invalidateQueries([QueryKeys.xxx])</code></td><td><code>client/.../mutations.ts</code></td></tr>
+      </tbody>
+    </table>
+    <p class="cite">参考：<code>client/src/data-provider/Messages/mutations.ts</code> 的 <code>useEditArtifact</code></p>
+  </section>
+
+  <section>
+    <h2>动手：Trace Banner + 验证 API</h2>
+    <p>在 IDE 里从 <code>Banner.tsx</code> 一路跟到 <code>banner.ts</code>（data-schemas）。然后：</p>
+    <div class="open-cmd">curl -s http://localhost:3080/api/banner | jq .
+# 登录后带 cookie 或 Authorization 可看非 public banner</div>
+    <p>对照 Network 面板里页面加载时的 <code>/api/banner</code> 请求。</p>
+  </section>
+
+  <section class="quiz">
+    <h3>自测</h3>
+
+    <div class="quiz-item" data-q="1" data-answer="b">
+      <p><strong>1.</strong> 加新 GET API，第一步应该改？</p>
+      <div class="options">
+        <label><input type="radio" name="q1" value="a" /> a) <code>api/server/routes/</code> 写 handler</label>
+        <label><input type="radio" name="q1" value="b" /> b) <code>packages/data-provider</code> 定义 types + endpoint + data-service</label>
+        <label><input type="radio" name="q1" value="c" /> c) <code>client</code> 写 React 组件</label>
+      </div>
+      <div class="feedback" id="fb1"></div>
+    </div>
+
+    <div class="quiz-item" data-q="2" data-answer="c">
+      <p><strong>2.</strong> Banner 的 MongoDB 查询逻辑在？</p>
+      <div class="options">
+        <label><input type="radio" name="q2" value="a" /> a) <code>packages/api</code></label>
+        <label><input type="radio" name="q2" value="b" /> b) <code>api/server/routes/banner.js</code></label>
+        <label><input type="radio" name="q2" value="c" /> c) <code>packages/data-schemas/src/methods/banner.ts</code></label>
+      </div>
+      <div class="feedback" id="fb2"></div>
+    </div>
+
+    <div class="quiz-item" data-q="3" data-answer="a">
+      <p><strong>3.</strong> 改完 <code>packages/data-provider</code> 后必须？</p>
+      <div class="options">
+        <label><input type="radio" name="q3" value="a" /> a) <code>npm run build:data-provider</code></label>
+        <label><input type="radio" name="q3" value="b" /> b) 重启 MongoDB</label>
+        <label><input type="radio" name="q3" value="c" /> c) 删除 <code>node_modules</code></label>
+      </div>
+      <div class="feedback" id="fb3"></div>
+    </div>
+
+    <div class="quiz-item" data-q="4">
+      <p><strong>4.</strong> 填空：消费 banner 数据的 hook 名称？</p>
+      <input type="text" class="trace-input" id="traceAnswer" placeholder="useGet...Query" />
+      <div class="feedback" id="fb4"></div>
+    </div>
+
+    <button class="check-btn" onclick="checkQuiz()">检查答案</button>
+
+    <div class="win-box" id="win">
+      <p><strong>本课完成。</strong> 你已有可复用的 12 步清单，能用 Banner 样本独立规划一条新 GET API。</p>
+      <p>下一课预告：<strong>data-schemas 与 MongoDB</strong> — schema 设计、methods 模式、索引与租户隔离。</p>
+    </div>
+  </section>
+
+  <footer>
+    <p><strong>打开本课</strong>：<code>open docs/teach/lessons/0006-feature-template.html</code></p>
+    <p><strong>参考</strong>：<a href="../reference/0006-feature-checklist.html">检查清单</a> · <a href="../reference/0002-data-provider-trilogy.html">三件套</a> · <a href="../../CLAUDE.md">CLAUDE.md</a></p>
+    <p><strong>教师</strong>：完成后在对话中说「我完成了 0006」。想练手可加一条只读 API，我可以带你 code review。</p>
+  </footer>
+
+  <script>
+    const radioAnswers = {
+      q1: { b: '对。契约层先行，前后端对同一 types 开发。' },
+      q2: { c: '对。DB 查询在 data-schemas methods，route 只调用 getBanner。' },
+      q3: { a: '对。data-provider 是编译产物，client/api 依赖构建输出。' }
+    };
+    function checkQuiz() {
+      let allCorrect = true;
+      for (let i = 1; i <= 3; i++) {
+        const selected = document.querySelector(`input[name="q${i}"]:checked`);
+        const fb = document.getElementById(`fb${i}`);
+        const item = document.querySelector(`.quiz-item[data-q="${i}"]`);
+        const correct = item.dataset.answer;
+        fb.classList.add('show');
+        if (!selected) {
+          fb.className = 'feedback show no';
+          fb.textContent = '请选择一个选项。';
+          allCorrect = false;
+          continue;
+        }
+        if (selected.value === correct) {
+          fb.className = 'feedback show ok';
+          fb.textContent = '✓ ' + radioAnswers[`q${i}`][correct];
+        } else {
+          fb.className = 'feedback show no';
+          fb.textContent = '✗ 回顾 12 步清单与三层代码表。';
+          allCorrect = false;
+        }
+      }
+      const trace = document.getElementById('traceAnswer').value.trim();
+      const fb4 = document.getElementById('fb4');
+      fb4.classList.add('show');
+      const ok = trace === 'useGetBannerQuery';
+      if (ok) {
+        fb4.className = 'feedback show ok';
+        fb4.textContent = '✓ 对。定义在 client/src/data-provider/Misc/queries.ts。';
+      } else {
+        fb4.className = 'feedback show no';
+        fb4.textContent = '✗ 提示：Misc/queries.ts 里的 useGet…Query。';
+        allCorrect = false;
+      }
+      if (allCorrect) document.getElementById('win').classList.add('show');
+    }
+  </script>
+</body>
+</html>
