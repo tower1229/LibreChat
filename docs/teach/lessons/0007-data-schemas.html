@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson 0007 — data-schemas 与 MongoDB</title>
+  <style>
+    :root {
+      --bg: #0f1117; --surface: #1a1d27; --border: #2d3348;
+      --text: #e8eaef; --muted: #8b92a8; --accent: #10a37f;
+      --frontend: #3b82f6; --shared: #a855f7; --backend: #f59e0b; --db: #c084fc;
+      --font: "Segoe UI", system-ui, sans-serif;
+      --mono: "Cascadia Code", Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.65; padding: 2rem 1.5rem 4rem; max-width: 52rem; margin: 0 auto; }
+    header { border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; }
+    .lesson-meta { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.5rem; }
+    h1 { font-size: 1.75rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .mission-tag { display: inline-block; font-size: 0.85rem; color: var(--accent); background: rgba(16,163,127,.12); padding: .25rem .65rem; border-radius: 4px; margin-top: .5rem; }
+    h2 { font-size: 1.15rem; font-weight: 600; margin: 2rem 0 .75rem; }
+    p { margin-bottom: 1rem; color: #c8cdd8; }
+    a { color: var(--accent); }
+    .diagram { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin: 1.25rem 0; font-family: var(--mono); font-size: 0.76rem; line-height: 1.55; overflow-x: auto; white-space: pre; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+    th, td { border: 1px solid var(--border); padding: 0.6rem 0.75rem; text-align: left; vertical-align: top; }
+    th { background: var(--surface); color: var(--muted); font-weight: 500; }
+    .cite { font-size: 0.85rem; color: var(--muted); }
+    .step { display: flex; gap: .75rem; margin: .75rem 0; align-items: flex-start; }
+    .step-num { flex-shrink: 0; width: 1.6rem; height: 1.6rem; background: var(--accent); color: #fff; border-radius: 50%; font-size: .8rem; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+    .step-body { flex: 1; }
+    .step-body code { font-family: var(--mono); font-size: 0.82em; color: #a5f3d0; }
+    .rule-box { background: rgba(16,163,127,.08); border-left: 3px solid var(--accent); padding: 1rem 1.25rem; margin: 1.25rem 0; border-radius: 0 6px 6px 0; }
+    .layer-db { color: var(--db); }
+    .quiz { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin: 1.5rem 0; }
+    .quiz h3 { font-size: 1rem; margin-bottom: 1rem; }
+    .quiz-item { margin-bottom: 1.25rem; }
+    .options { display: flex; flex-direction: column; gap: .4rem; }
+    .options label { display: flex; gap: .5rem; cursor: pointer; padding: .5rem .65rem; border-radius: 6px; border: 1px solid transparent; }
+    .options label:hover { background: rgba(255,255,255,.04); border-color: var(--border); }
+    .feedback { display: none; margin-top: .5rem; font-size: .9rem; padding: .5rem .75rem; border-radius: 4px; }
+    .feedback.show { display: block; }
+    .feedback.ok { background: rgba(34,197,94,.12); color: #86efac; }
+    .feedback.no { background: rgba(239,68,68,.12); color: #fca5a5; }
+    .check-btn { background: var(--accent); color: #fff; border: none; padding: .6rem 1.25rem; border-radius: 6px; font-size: .95rem; cursor: pointer; margin-top: .5rem; }
+    .check-btn:hover { filter: brightness(1.1); }
+    .win-box { display: none; background: rgba(16,163,127,.1); border: 1px solid var(--accent); border-radius: 8px; padding: 1.25rem; margin: 1.5rem 0; }
+    .win-box.show { display: block; }
+    .trace-input { width: 100%; background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: .5rem .75rem; border-radius: 6px; font-family: var(--mono); font-size: .85rem; margin-top: .35rem; }
+    footer { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+    .open-cmd { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: .75rem 1rem; font-family: var(--mono); font-size: .85rem; margin: 1rem 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="lesson-meta">Lesson 0007 · 约 40 分钟</div>
+    <h1>data-schemas 与 MongoDB</h1>
+    <span class="mission-tag">Mission：读懂并安全地改 DB 层</span>
+    <p class="cite" style="margin-top:1rem"><a href="0006-feature-template.html">← Lesson 0006</a> · <a href="../reference/0007-data-schemas.html">速查表</a></p>
+  </header>
+
+  <section>
+    <h2>本课只学一件事</h2>
+    <p>Lesson 0006 你在 route 里调了 <code>getBanner</code>，但 DB 逻辑在 <code>packages/data-schemas</code>。本课回答：<strong>这个包怎么组织？新集合怎么加？和 data-provider 的 types 什么关系？</strong></p>
+  </section>
+
+  <section>
+    <h2>两个 types，别混</h2>
+    <table>
+      <thead><tr><th>包</th><th>例子</th><th>用途</th></tr></thead>
+      <tbody>
+        <tr><td><code>packages/data-provider</code></td><td><code>TBanner</code>、zod schema</td><td>HTTP 契约 — 前后端、API 响应</td></tr>
+        <tr><td><code>packages/data-schemas</code></td><td><code>IBanner</code>、Mongoose Schema</td><td>MongoDB 文档 — 持久化、查询</td></tr>
+      </tbody>
+    </table>
+    <p>字段大多对齐，但职责不同：API 类型可 omit 内部字段；DB 类型可有 <code>tenantId</code>、索引、Meili 标记等。</p>
+  </section>
+
+  <section>
+    <h2>目录三层：schema → model → methods</h2>
+    <div class="diagram">packages/data-schemas/src/
+
+schema/banner.ts      ← 字段定义、enum、timestamps
+models/banner.ts      ← createBannerModel + applyTenantIsolation
+methods/banner.ts     ← createBannerMethods → getBanner()
+
+         ↓ 启动时注入
+
+api/db/index.js         createModels(mongoose)     注册所有 Model
+api/models/index.js     createMethods(mongoose)    导出 getBanner, saveMessage, …
+                         ↑ legacy route: require('~/models')</div>
+  </section>
+
+  <section>
+    <h2>样本 ① Banner（简单读）</h2>
+
+    <p><strong>Schema</strong> — 集合形状 + 索引 hint：</p>
+    <div class="diagram">// schema/banner.ts
+bannerId, message, displayFrom, displayTo, type, isPublic, persistable
+tenantId: { type: String, index: true }
+{ timestamps: true }  → createdAt / updatedAt</div>
+
+    <p><strong>Model</strong> — 注册到 Mongoose + 租户插件：</p>
+    <div class="diagram">// models/banner.ts
+applyTenantIsolation(bannerSchema);
+return mongoose.models.Banner || mongoose.model('Banner', bannerSchema);</div>
+
+    <p><strong>Methods</strong> — 工厂函数，返回可调用方法（你已在 IDE 里打开过）：</p>
+    <div class="diagram">// methods/banner.ts
+export function createBannerMethods(mongoose) {
+  async function getBanner(user?) {
+    return Banner.findOne({ displayFrom: { $lte: now }, ... }).lean();
+  }
+  return { getBanner };
+}</div>
+
+    <p><code>createMethods</code> 在 <code>methods/index.ts</code> 里 spread 合并所有 domain methods，所以 route 里直接 <code>const { getBanner } = require('~/models')</code>。</p>
+  </section>
+
+  <section>
+    <h2>样本 ② Message（复杂写）</h2>
+    <p>Lesson 0005 的 <code>saveMessage</code> 是 Tier 2 方法 — 带业务规则：</p>
+    <ul style="margin:0 0 1rem 1.25rem;color:#c8cdd8">
+      <li>校验 <code>userId</code>、<code>conversationId</code> UUID</li>
+      <li>临时会话 retention（<code>isTemporary</code> + interfaceConfig）</li>
+      <li>upsert / 更新 content parts</li>
+      <li>MeiliSearch 同步（经 model plugin）</li>
+    </ul>
+    <p class="cite">文件：<code>methods/message.ts</code> + <code>schema/message.ts</code>（<code>meiliIndex: true</code> 字段标记）</p>
+    <div class="rule-box">
+      <strong>规律：</strong>简单 <code>findOne</code> 放 methods 即可；跨 collection、权限、缓存、事务 → methods 可注入 deps（见 <code>createMethods(mongoose, { getCache, matchModelName, ... })</code>）。
+    </div>
+  </section>
+
+  <section>
+    <h2>租户隔离 tenantIsolation</h2>
+    <p>多租户部署时，带 <code>tenantId</code> 的 schema 在 model 层调用 <code>applyTenantIsolation</code>。插件会：</p>
+    <ul style="margin:0 0 1rem 1.25rem;color:#c8cdd8">
+      <li>在 find / update / aggregate 上自动注入当前 <code>tenantId</code>（来自请求上下文）</li>
+      <li>阻止跨租户修改 <code>tenantId</code></li>
+      <li><code>TENANT_ISOLATION_STRICT=true</code> 时，无 tenant 上下文的查询会失败</li>
+    </ul>
+    <p class="cite">来源：<code>models/plugins/tenantIsolation.ts</code> · <code>config/tenantContext.ts</code>（<code>getTenantId</code>、<code>runAsSystem</code>）</p>
+    <p>系统级任务（seed、migration）用 <code>runAsSystem()</code> 绕过租户 scope。</p>
+  </section>
+
+  <section>
+    <h2>启动顺序（为什么 createModels 必须先跑）</h2>
+    <div class="diagram">connectDb()
+createModels(mongoose)   ← api/db/index.js，Message/Conversation 等 Model 注册
+indexSync()              ← MeiliSearch 同步，依赖已注册的 Model
+createMethods(mongoose)  ← api/models/index.js，业务方法就绪</div>
+    <p>注释写在 <code>api/db/index.js</code>：若 Model 未注册，Meili 同步会<strong>静默失败</strong>。</p>
+  </section>
+
+  <section>
+    <h2>加新集合：5 步</h2>
+    <table>
+      <thead><tr><th>步</th><th>文件</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><code>schema/foo.ts</code> — Mongoose Schema</td></tr>
+        <tr><td>2</td><td><code>types/foo.ts</code> — <code>IFoo</code> 接口</td></tr>
+        <tr><td>3</td><td><code>models/foo.ts</code> + 加入 <code>models/index.ts</code> 的 <code>createModels</code></td></tr>
+        <tr><td>4</td><td><code>methods/foo.ts</code> + 加入 <code>methods/index.ts</code> 的 <code>createMethods</code></td></tr>
+        <tr><td>5</td><td>route 使用 <code>require('~/models').getFoo</code>；API 契约仍走 data-provider</td></tr>
+      </tbody>
+    </table>
+    <p>需 compound index / 迁移时，看 <code>migrations/tenantIndexes.ts</code> 模式 — 幂等 drop 旧索引。</p>
+  </section>
+
+  <section>
+    <h2>测试怎么写</h2>
+    <p>项目测试哲学：用 <strong>mongodb-memory-server</strong> 跑真实 Mongoose 查询，而不是 mock DB。</p>
+    <div class="open-cmd">cd packages/data-schemas && npx jest message.spec</div>
+    <p class="cite">参考：<code>methods/message.spec.ts</code>、<code>methods/banner</code> 同级 *.spec.ts</p>
+  </section>
+
+  <section>
+    <h2>动手：MongoDB 里看 Banner 集合</h2>
+    <p>若本地 Mongo 在跑（backend:dev 已 connectDb）：</p>
+    <div class="open-cmd">mongosh LibreChat --eval 'db.banners.find().pretty()'
+# 集合名通常是 schema  model 名小写复数：Banner → banners</div>
+    <p>对照 <code>getBanner</code> 的 query 条件：<code>displayFrom</code> / <code>displayTo</code> / <code>type</code> / <code>isPublic</code>。</p>
+  </section>
+
+  <section class="quiz">
+    <h3>自测</h3>
+
+    <div class="quiz-item" data-q="1" data-answer="c">
+      <p><strong>1.</strong> legacy route 里 <code>getBanner</code> 从哪 import？</p>
+      <div class="options">
+        <label><input type="radio" name="q1" value="a" /> a) <code>@librechat/data-schemas</code> 直接 import createBannerMethods</label>
+        <label><input type="radio" name="q1" value="b" /> b) <code>packages/data-schemas/src/methods/banner.ts</code></label>
+        <label><input type="radio" name="q1" value="c" /> c) <code>require('~/models')</code> — createMethods 已合并导出</label>
+      </div>
+      <div class="feedback" id="fb1"></div>
+    </div>
+
+    <div class="quiz-item" data-q="2" data-answer="b">
+      <p><strong>2.</strong> <code>applyTenantIsolation</code> 应该加在哪一层？</p>
+      <div class="options">
+        <label><input type="radio" name="q2" value="a" /> a) route handler 里每次查询手动加 tenantId</label>
+        <label><input type="radio" name="q2" value="b" /> b) models/foo.ts 注册 Model 时，对 Schema 调用</label>
+        <label><input type="radio" name="q2" value="c" /> c) data-provider 的 zod schema</label>
+      </div>
+      <div class="feedback" id="fb2"></div>
+    </div>
+
+    <div class="quiz-item" data-q="3" data-answer="a">
+      <p><strong>3.</strong> <code>createModels</code> 为什么必须在 <code>indexSync</code> 之前？</p>
+      <div class="options">
+        <label><input type="radio" name="q3" value="a" /> a) indexSync 依赖 mongoose.models 已注册，否则 Meili 同步静默失败</label>
+        <label><input type="radio" name="q3" value="b" /> b) MongoDB 连接顺序要求</label>
+        <label><input type="radio" name="q3" value="c" /> c) 为了编译 TypeScript</label>
+      </div>
+      <div class="feedback" id="fb3"></div>
+    </div>
+
+    <div class="quiz-item" data-q="4">
+      <p><strong>4.</strong> 填空：Banner 的 Mongoose 查询写在 <code>packages/data-schemas/src/</code> 的哪个子目录？（单数目录名）</p>
+      <input type="text" class="trace-input" id="traceAnswer" placeholder="methods / schema / models" />
+      <div class="feedback" id="fb4"></div>
+    </div>
+
+    <button class="check-btn" onclick="checkQuiz()">检查答案</button>
+
+    <div class="win-box" id="win">
+      <p><strong>本课完成。</strong> 你理解 schema → model → methods 三层，以及 ~/models 注入方式。</p>
+      <p>下一课预告：<strong>鉴权、权限、多租户</strong> — JWT、RBAC、capabilities（按需深入）。</p>
+    </div>
+  </section>
+
+  <footer>
+    <p><strong>打开本课</strong>：<code>open docs/teach/lessons/0007-data-schemas.html</code></p>
+    <p><strong>参考</strong>：<a href="../reference/0007-data-schemas.html">速查：data-schemas</a> · <a href="https://mongoosejs.com/docs/guide.html">Mongoose Schemas</a></p>
+    <p><strong>教师</strong>：完成后在对话中说「我完成了 0007」。</p>
+  </footer>
+
+  <script>
+    const radioAnswers = {
+      q1: { c: '对。api/models/index.js 统一 createMethods 并 spread 导出。' },
+      q2: { b: '对。Model 层一次注册，所有查询自动带租户 scope。' },
+      q3: { a: '对。见 api/db/index.js 顶部注释。' }
+    };
+    function checkQuiz() {
+      let allCorrect = true;
+      for (let i = 1; i <= 3; i++) {
+        const selected = document.querySelector(`input[name="q${i}"]:checked`);
+        const fb = document.getElementById(`fb${i}`);
+        const item = document.querySelector(`.quiz-item[data-q="${i}"]`);
+        const correct = item.dataset.answer;
+        fb.classList.add('show');
+        if (!selected) {
+          fb.className = 'feedback show no';
+          fb.textContent = '请选择一个选项。';
+          allCorrect = false;
+          continue;
+        }
+        if (selected.value === correct) {
+          fb.className = 'feedback show ok';
+          fb.textContent = '✓ ' + radioAnswers[`q${i}`][correct];
+        } else {
+          fb.className = 'feedback show no';
+          fb.textContent = '✗ 回顾「目录三层」与启动顺序。';
+          allCorrect = false;
+        }
+      }
+      const trace = document.getElementById('traceAnswer').value.trim().toLowerCase();
+      const fb4 = document.getElementById('fb4');
+      fb4.classList.add('show');
+      const ok = trace === 'methods';
+      if (ok) {
+        fb4.className = 'feedback show ok';
+        fb4.textContent = '✓ 对。getBanner 在 methods/banner.ts；schema 只定义形状。';
+      } else {
+        fb4.className = 'feedback show no';
+        fb4.textContent = '✗ 提示：findOne 业务查询在 createBannerMethods 里。';
+        allCorrect = false;
+      }
+      if (allCorrect) document.getElementById('win').classList.add('show');
+    }
+  </script>
+</body>
+</html>

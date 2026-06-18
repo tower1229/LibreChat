@@ -67,3 +67,15 @@ _Avoid_: 在 route handler 里手写 res.write 而不经 JobManager（Agents 路
 **契约先行**:
 二开加 API 时先改 `packages/data-provider`（types → endpoints → data-service → keys），`npm run build:data-provider` 后再动后端路由与前端 hook。
 _Avoid_: 先写 route 再补 types（易导致前后端字段漂移）
+
+**data-schemas**:
+MongoDB 层 workspace：`schema/`（Mongoose 定义）→ `models/`（注册 Model + tenantIsolation）→ `methods/`（createXxxMethods 工厂）。legacy 通过 `~/models` = `createMethods(mongoose)` 导出。
+_Avoid_: 在 route 里直接写 Mongoose 查询
+
+**IMessage vs TMessage**:
+`IMessage` 在 data-schemas（DB 文档）；`TMessage` 在 data-provider（API/UI 契约）。字段相近，职责不同。
+_Avoid_: 在 data-provider 里定义 Mongo-only 字段
+
+**tenantIsolation**:
+Model 注册时对 Schema 调用 `applyTenantIsolation`，查询/更新自动带 `tenantId`。系统任务用 `runAsSystem()`。
+_Avoid_: 在 handler 里手动拼 tenant filter 绕过插件

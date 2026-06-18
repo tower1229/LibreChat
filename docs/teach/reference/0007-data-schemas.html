@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ref — data-schemas 速查</title>
+  <style>
+    @media print { body { background: #fff; color: #000; } .no-print { display: none; } }
+    body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; font-size: 0.9rem; }
+    h1 { font-size: 1.25rem; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+    th, td { border: 1px solid #ccc; padding: 0.4rem 0.5rem; text-align: left; vertical-align: top; }
+    th { background: #f5f5f5; }
+    .flow { font-family: ui-monospace, monospace; font-size: 0.75rem; background: #f8f8f8; padding: 0.75rem; border-left: 3px solid #a855f7; margin: 1rem 0; white-space: pre-wrap; }
+    .rule { background: #faf5ff; border-left: 3px solid #a855f7; padding: 0.75rem; margin: 1rem 0; font-size: 0.85rem; }
+    code { font-size: 0.85em; }
+  </style>
+</head>
+<body>
+  <h1>data-schemas 速查</h1>
+  <p class="no-print"><a href="../lessons/0007-data-schemas.html">← 回到 Lesson 0007</a></p>
+
+  <div class="flow">packages/data-schemas/src/
+  schema/     Mongoose Schema 定义（字段、索引、enum）
+  types/      IMessage、IBanner 等 TS 接口
+  models/     createXxxModel — 注册 Model + tenantIsolation
+  methods/    createXxxMethods — 业务查询/写入（纯函数工厂）
+  migrations/ 索引迁移（如 tenantIndexes）
+
+启动 wiring:
+  api/db/index.js      createModels(mongoose)   ← 必须先于 indexSync
+  api/models/index.js  createMethods(mongoose, deps) → ~/models</div>
+
+  <table>
+    <tr><th>包</th><th>类型</th><th>用途</th></tr>
+    <tr><td>data-provider</td><td><code>TMessage</code>、zod</td><td>前后端 API 契约</td></tr>
+    <tr><td>data-schemas</td><td><code>IMessage</code>、Mongoose</td><td>DB 文档形状</td></tr>
+  </table>
+
+  <table>
+    <tr><th>加新集合</th><th>文件</th></tr>
+    <tr><td>1</td><td><code>schema/foo.ts</code></td></tr>
+    <tr><td>2</td><td><code>types/foo.ts</code>（或 schema 内 export）</td></tr>
+    <tr><td>3</td><td><code>models/foo.ts</code> + 注册到 <code>models/index.ts</code></td></tr>
+    <tr><td>4</td><td><code>methods/foo.ts</code> + 注册到 <code>methods/index.ts</code></td></tr>
+    <tr><td>5</td><td>route 里 <code>require('~/models').getFoo</code></td></tr>
+  </table>
+
+  <div class="rule">
+    <strong>tenantId：</strong>需租户隔离的 schema 在 model 里 <code>applyTenantIsolation(schema)</code>；查询自动带当前 tenant，勿手写跨租户 filter 绕过插件。
+  </div>
+</body>
+</html>

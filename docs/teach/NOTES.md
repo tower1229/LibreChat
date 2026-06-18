@@ -17,7 +17,7 @@
 3. 前端数据层：React Query hooks 与 UI 连接 ✓ 已完成
 4. 后端入口：Express 启动、中间件、路由挂载 ✓ 已完成
 5. 一条消息的端到端 trace（发送 → 流式响应 → 落库）✓ 已完成
-6. packages/api 新功能样板（端到端小改动）← 当前
-7. data-schemas 与 MongoDB
+6. packages/api 新功能样板（端到端小改动）✓ 已完成
+7. data-schemas 与 MongoDB ← 当前
 8. 鉴权、权限、多租户（按需）
 9. Agents / MCP 集成（按需深入）
