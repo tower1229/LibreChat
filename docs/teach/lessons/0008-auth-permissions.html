@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson 0008 — 鉴权、权限与多租户</title>
+  <style>
+    :root {
+      --bg: #0f1117; --surface: #1a1d27; --border: #2d3348;
+      --text: #e8eaef; --muted: #8b92a8; --accent: #10a37f;
+      --frontend: #3b82f6; --shared: #a855f7; --backend: #f59e0b; --auth: #ef4444;
+      --font: "Segoe UI", system-ui, sans-serif;
+      --mono: "Cascadia Code", Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.65; padding: 2rem 1.5rem 4rem; max-width: 52rem; margin: 0 auto; }
+    header { border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; }
+    .lesson-meta { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.5rem; }
+    h1 { font-size: 1.75rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .mission-tag { display: inline-block; font-size: 0.85rem; color: var(--accent); background: rgba(16,163,127,.12); padding: .25rem .65rem; border-radius: 4px; margin-top: .5rem; }
+    h2 { font-size: 1.15rem; font-weight: 600; margin: 2rem 0 .75rem; }
+    p { margin-bottom: 1rem; color: #c8cdd8; }
+    a { color: var(--accent); }
+    .diagram { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin: 1.25rem 0; font-family: var(--mono); font-size: 0.76rem; line-height: 1.55; overflow-x: auto; white-space: pre; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+    th, td { border: 1px solid var(--border); padding: 0.6rem 0.75rem; text-align: left; vertical-align: top; }
+    th { background: var(--surface); color: var(--muted); font-weight: 500; }
+    .cite { font-size: 0.85rem; color: var(--muted); }
+    .step { display: flex; gap: .75rem; margin: .75rem 0; align-items: flex-start; }
+    .step-num { flex-shrink: 0; width: 1.6rem; height: 1.6rem; background: var(--accent); color: #fff; border-radius: 50%; font-size: .8rem; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+    .step-body { flex: 1; }
+    .step-body code { font-family: var(--mono); font-size: 0.82em; color: #a5f3d0; }
+    .rule-box { background: rgba(16,163,127,.08); border-left: 3px solid var(--accent); padding: 1rem 1.25rem; margin: 1.25rem 0; border-radius: 0 6px 6px 0; }
+    .layer-auth { color: var(--auth); }
+    .quiz { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin: 1.5rem 0; }
+    .quiz h3 { font-size: 1rem; margin-bottom: 1rem; }
+    .quiz-item { margin-bottom: 1.25rem; }
+    .options { display: flex; flex-direction: column; gap: .4rem; }
+    .options label { display: flex; gap: .5rem; cursor: pointer; padding: .5rem .65rem; border-radius: 6px; border: 1px solid transparent; }
+    .options label:hover { background: rgba(255,255,255,.04); border-color: var(--border); }
+    .feedback { display: none; margin-top: .5rem; font-size: .9rem; padding: .5rem .75rem; border-radius: 4px; }
+    .feedback.show { display: block; }
+    .feedback.ok { background: rgba(34,197,94,.12); color: #86efac; }
+    .feedback.no { background: rgba(239,68,68,.12); color: #fca5a5; }
+    .check-btn { background: var(--accent); color: #fff; border: none; padding: .6rem 1.25rem; border-radius: 6px; font-size: .95rem; cursor: pointer; margin-top: .5rem; }
+    .check-btn:hover { filter: brightness(1.1); }
+    .win-box { display: none; background: rgba(16,163,127,.1); border: 1px solid var(--accent); border-radius: 8px; padding: 1.25rem; margin: 1.5rem 0; }
+    .win-box.show { display: block; }
+    .trace-input { width: 100%; background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: .5rem .75rem; border-radius: 6px; font-family: var(--mono); font-size: .85rem; margin-top: .35rem; }
+    footer { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+    .open-cmd { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: .75rem 1rem; font-family: var(--mono); font-size: .85rem; margin: 1rem 0; }
+    ul { margin: 0 0 1rem 1.25rem; color: #c8cdd8; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="lesson-meta">Lesson 0008 · 约 35 分钟</div>
+    <h1>鉴权、权限与多租户</h1>
+    <span class="mission-tag">Mission：安全地扩展 API — 知道门在哪、锁在哪</span>
+    <p class="cite" style="margin-top:1rem"><a href="0007-data-schemas.html">← Lesson 0007</a> · <a href="../reference/0008-auth-permissions.html">速查表</a></p>
+  </header>
+
+  <section>
+    <h2>本课只学一件事</h2>
+    <p>Lesson 0007 讲了 DB 层的 <code>tenantIsolation</code>。本课回答：<strong>请求是怎么带上 tenant 上下文的？登录失败 vs 权限不足有什么区别？二开写 route 该挂哪些中间件？</strong></p>
+    <p>LibreChat 的访问控制是<strong>分层叠加</strong>的 — 不是「一个 if admin」搞定。</p>
+  </section>
+
+  <section>
+    <h2>四层门禁（由外到内）</h2>
+    <div class="diagram">HTTP 请求
+  │
+  ├─ ① 鉴权 Auth          requireJwtAuth / optionalJwtAuth     → 401 Unauthorized
+  │       └─ tenantContextMiddleware（有 user 时写入 ALS tenantId）
+  │
+  ├─ ② 功能 RBAC          generateCheckAccess                  → 403 Forbidden
+  │       PermissionTypes × Permissions（Role 文档里的布尔矩阵）
+  │
+  ├─ ③ 系统 Capability    requireCapability                    → 403 Forbidden
+  │       SystemCapabilities（admin 管理面，principals 解析）
+  │
+  └─ ④ 资源级 ACL         canAccessResource / PermissionService → 403/404
+          「这条 prompt / agent 能不能被<strong>这个用户</strong>读写？」</div>
+    <p class="cite">本课聚焦 ①②③；资源级 ACL 在改 prompts/agents 共享时按需深入。</p>
+  </section>
+
+  <section>
+    <h2>① 鉴权：requireJwtAuth vs optionalJwtAuth</h2>
+    <table>
+      <thead><tr><th>中间件</th><th>无 token</th><th>有 token</th><th>典型 route</th></tr></thead>
+      <tbody>
+        <tr><td><code>requireJwtAuth</code></td><td>401</td><td><code>req.user</code> + tenant ALS</td><td><code>/api/convos</code>、<code>/api/skills</code></td></tr>
+        <tr><td><code>optionalJwtAuth</code></td><td>继续，<code>req.user</code> 为空</td><td>同上</td><td><code>/api/banner</code>、<code>/api/config</code></td></tr>
+      </tbody>
+    </table>
+
+    <p><strong>样本：Banner</strong>（Lesson 0006）— 登录与否展示不同公告：</p>
+    <div class="diagram">// api/server/routes/banner.js
+router.get('/', optionalJwtAuth, async (req, res) => {
+  res.send(await getBanner(req.user));  // user 可能为 undefined
+});</div>
+    <p><code>getBanner(user)</code> 在 methods 里：无 user 时只查 <code>isPublic: true</code>。</p>
+
+    <p><strong>requireJwtAuth 成功后自动链 tenant：</strong></p>
+    <div class="diagram">passport.authenticate('jwt') → req.user = user
+  → tenantContextMiddleware(req, res, next)
+       → tenantStorage.run({ tenantId, userId, requestId })
+            → 下游 Mongoose 查询被 tenantIsolation 插件 scope</div>
+    <p class="cite">来源：<a href="https://github.com/danny-avila/LibreChat/blob/main/api/server/middleware/requireJwtAuth.js">requireJwtAuth.js</a> · <a href="https://github.com/danny-avila/LibreChat/blob/main/packages/api/src/middleware/tenant.ts">tenant.ts</a></p>
+
+    <div class="rule-box">
+      <strong>与 Lesson 0007 的衔接：</strong><code>applyTenantIsolation</code> 在 <strong>Model 层</strong>注册；<code>tenantContextMiddleware</code> 在 <strong>请求层</strong>写入 ALS。两者配对，缺一则多租户查询要么漏 filter、要么 strict 模式 403。
+    </div>
+  </section>
+
+  <section>
+    <h2>② 功能 RBAC：PermissionTypes × Permissions</h2>
+    <p>共享枚举在 <code>packages/data-provider/src/permissions.ts</code> — 前后端同一套契约。</p>
+    <div class="diagram">PermissionTypes.SKILLS  +  Permissions.USE     → 能否打开 Skills 功能
+PermissionTypes.AGENTS  +  Permissions.CREATE  → 能否新建 Agent
+PermissionTypes.MCP_SERVERS + Permissions.SHARE → 能否共享 MCP 配置</div>
+
+    <p><strong>后端：</strong><code>generateCheckAccess</code> 查 Role 文档（<code>getRoleByName(user.role)</code>）：</p>
+    <div class="diagram">// api/server/routes/skills.js
+const checkSkillAccess = generateCheckAccess({
+  permissionType: PermissionTypes.SKILLS,
+  permissions: [Permissions.USE],
+  getRoleByName,
+});
+router.get('/', requireJwtAuth, checkSkillAccess, handler);</div>
+    <p>拒绝时返回 <strong>403</strong> + <code>Forbidden: Insufficient permissions</code>（不是 401）。</p>
+
+    <p><strong>前端镜像：</strong>同一矩阵，避免 UI 显示用户用不了的功能：</p>
+    <div class="diagram">// client/src/hooks/Roles/useHasAccess.ts
+const hasAccess = roles[user.role]?.permissions?.[permissionType]?.[permission] === true;</div>
+    <p class="cite">二开规则：加了 <code>generateCheckAccess</code> 的 route，UI 侧用相同 <code>PermissionTypes</code> + <code>Permissions</code> 做 <code>useHasAccess</code> gating。</p>
+  </section>
+
+  <section>
+    <h2>③ 系统 Capability（管理面）</h2>
+    <p>RBAC 管「普通用户能用什么功能」；<strong>Capability</strong> 管「谁能进管理后台、改角色、读审计」等系统级操作。</p>
+    <div class="diagram">// api/server/routes/admin/roles.js
+const requireAdminAccess = requireCapability(SystemCapabilities.ACCESS_ADMIN);
+const requireManageRoles = requireCapability(SystemCapabilities.MANAGE_ROLES);
+
+router.put('/:roleName', requireJwtAuth, requireAdminAccess, requireManageRoles, ...);</div>
+    <p><code>requireCapability</code> 由 <code>generateCapabilityCheck</code> 工厂创建，注入 <code>getUserPrincipals</code> / <code>hasCapabilityForPrincipals</code>（<code>~/models</code>）。</p>
+    <p class="cite">来源：<a href="https://github.com/danny-avila/LibreChat/blob/main/packages/api/src/middleware/capabilities.ts">capabilities.ts</a> · <a href="https://github.com/danny-avila/LibreChat/blob/main/api/server/middleware/roles/capabilities.js">roles/capabilities.js</a></p>
+  </section>
+
+  <section>
+    <h2>动手：Trace 一条受保护 route</h2>
+    <p>在 IDE 里打开 <code>api/server/routes/skills.js</code>，从文件顶部往下找 middleware 栈：</p>
+    <div class="step"><div class="step-num">1</div><div class="step-body"><code>router.use(requireJwtAuth)</code> — 全 router 必须登录</div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-body"><code>checkSkillAccess</code> / <code>checkSkillCreate</code> — RBAC gate</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-body">个别路由还有 <code>canAccessSkillResource</code> — 资源级 ACL（第 ④ 层）</div></div>
+    <p>对比 <code>routes/banner.js</code>：只有 <code>optionalJwtAuth</code>，无 RBAC — 因为公告是公开/半公开读。</p>
+  </section>
+
+  <section>
+    <h2>二开 checklist（写操作 API）</h2>
+    <table>
+      <thead><tr><th>问题</th><th>做法</th></tr></thead>
+      <tbody>
+        <tr><td>必须登录？</td><td><code>requireJwtAuth</code>（多数写操作）</td></tr>
+        <tr><td>登录可选、行为不同？</td><td><code>optionalJwtAuth</code> + handler 分支</td></tr>
+        <tr><td>功能对哪些角色开放？</td><td><code>generateCheckAccess</code> + 新/现有 <code>PermissionTypes</code></td></tr>
+        <tr><td>Admin 专属？</td><td><code>requireCapability(SystemCapabilities.…)</code></td></tr>
+        <tr><td>数据按租户隔离？</td><td>model 层 <code>applyTenantIsolation</code>（0007）+ 鉴权链 tenant ALS（本课）</td></tr>
+        <tr><td>前端按钮要不要显示？</td><td><code>useHasAccess</code> 与后端同一枚举</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="quiz">
+    <h3>自测</h3>
+
+    <div class="quiz-item" data-q="1" data-answer="b">
+      <p><strong>1.</strong> <code>GET /api/banner</code> 用的是哪种鉴权？</p>
+      <div class="options">
+        <label><input type="radio" name="q1" value="a" /> a) requireJwtAuth — 必须登录</label>
+        <label><input type="radio" name="q1" value="b" /> b) optionalJwtAuth — 未登录也能访问</label>
+        <label><input type="radio" name="q1" value="c" /> c) 无鉴权中间件</label>
+      </div>
+      <div class="feedback" id="fb1"></div>
+    </div>
+
+    <div class="quiz-item" data-q="2" data-answer="b">
+      <p><strong>2.</strong> <code>requireJwtAuth</code> 成功后，紧接着调用什么来建立 tenant ALS？</p>
+      <div class="options">
+        <label><input type="radio" name="q2" value="a" /> a) applyTenantIsolation</label>
+        <label><input type="radio" name="q2" value="b" /> b) tenantContextMiddleware</label>
+        <label><input type="radio" name="q2" value="c" /> c) generateCheckAccess</label>
+      </div>
+      <div class="feedback" id="fb2"></div>
+    </div>
+
+    <div class="quiz-item" data-q="3" data-answer="c">
+      <p><strong>3.</strong> 用户已登录但 Role 没有 <code>SKILLS.USE</code>，<code>checkSkillAccess</code> 返回？</p>
+      <div class="options">
+        <label><input type="radio" name="q3" value="a" /> a) 401 Unauthorized</label>
+        <label><input type="radio" name="q3" value="b" /> b) 404 Not Found</label>
+        <label><input type="radio" name="q3" value="c" /> c) 403 Forbidden</label>
+      </div>
+      <div class="feedback" id="fb3"></div>
+    </div>
+
+    <div class="quiz-item" data-q="4">
+      <p><strong>4.</strong> 填空：前端检查 <code>PermissionTypes</code> + <code>Permissions</code> 的 hook 叫什么？（camelCase）</p>
+      <input type="text" class="trace-input" id="traceAnswer" placeholder="use…" />
+      <div class="feedback" id="fb4"></div>
+    </div>
+
+    <button class="check-btn" onclick="checkQuiz()">检查答案</button>
+
+    <div class="win-box" id="win">
+      <p><strong>本课完成。</strong> 你能区分 401 vs 403、Auth vs RBAC vs Capability，并知道 tenant ALS 与 DB 插件如何配对。</p>
+      <p>下一课预告：<strong>Agents / MCP 集成</strong> — 按需深入 Agent 路由、MCP 工具与 Skills 依赖链。</p>
+    </div>
+  </section>
+
+  <footer>
+    <p><strong>打开本课</strong>：<code>start docs/teach/lessons/0008-auth-permissions.html</code>（Windows）或 <code>open docs/teach/lessons/0008-auth-permissions.html</code>（macOS）</p>
+    <p><strong>参考</strong>：<a href="../reference/0008-auth-permissions.html">速查：鉴权与权限</a> · <a href="../GLOSSARY.md">Glossary</a> · <a href="https://github.com/danny-avila/LibreChat/blob/main/packages/data-provider/src/permissions.ts">permissions.ts</a></p>
+    <p><strong>教师</strong>：完成后在对话中说「我完成了 0008」。有不清楚的随时追问。</p>
+  </footer>
+
+  <script>
+    const radioAnswers = {
+      q1: { b: '对。Banner 用 optionalJwtAuth；getBanner 根据 req.user 有无分支。' },
+      q2: { b: '对。requireJwtAuth 在 passport 成功后链式调用 tenantContextMiddleware。' },
+      q3: { c: '对。已鉴权但权限不足 → 403；401 是未登录/ token 无效。' }
+    };
+    function checkQuiz() {
+      let allCorrect = true;
+      for (let i = 1; i <= 3; i++) {
+        const selected = document.querySelector(`input[name="q${i}"]:checked`);
+        const fb = document.getElementById(`fb${i}`);
+        const item = document.querySelector(`.quiz-item[data-q="${i}"]`);
+        const correct = item.dataset.answer;
+        fb.classList.add('show');
+        if (!selected) {
+          fb.className = 'feedback show no';
+          fb.textContent = '请选择一个选项。';
+          allCorrect = false;
+          continue;
+        }
+        if (selected.value === correct) {
+          fb.className = 'feedback show ok';
+          fb.textContent = '✓ ' + radioAnswers[`q${i}`][correct];
+        } else {
+          fb.className = 'feedback show no';
+          fb.textContent = '✗ 回顾「四层门禁」与 Banner / Skills 样本。';
+          allCorrect = false;
+        }
+      }
+      const trace = document.getElementById('traceAnswer').value.trim();
+      const fb4 = document.getElementById('fb4');
+      fb4.classList.add('show');
+      const ok = trace.toLowerCase() === 'usehasaccess';
+      if (ok) {
+        fb4.className = 'feedback show ok';
+        fb4.textContent = '✓ 对。client/src/hooks/Roles/useHasAccess.ts 镜像后端 RBAC。';
+      } else {
+        fb4.className = 'feedback show no';
+        fb4.textContent = '✗ 提示：AuthContext 里的 roles[user.role].permissions…';
+        allCorrect = false;
+      }
+      if (allCorrect) document.getElementById('win').classList.add('show');
+    }
+  </script>
+</body>
+</html>

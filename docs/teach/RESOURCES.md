@@ -22,6 +22,18 @@
   新后端 TypeScript 代码所在地。Use for: 业务逻辑、服务、中间件实现。
 - [packages/data-schemas/](../../packages/data-schemas/)
   MongoDB models/schemas。Use for: 数据结构与 DB 操作。
+- [api/server/middleware/requireJwtAuth.js](../../api/server/middleware/requireJwtAuth.js)
+  JWT 鉴权 + 链式 tenantContext。Use for: 401 与 req.user 来源。
+- [packages/api/src/middleware/access.ts](../../packages/api/src/middleware/access.ts)
+  `checkAccess` / `generateCheckAccess`。Use for: 角色 RBAC 中间件工厂。
+- [packages/api/src/middleware/capabilities.ts](../../packages/api/src/middleware/capabilities.ts)
+  `requireCapability` / principals 缓存。Use for: admin 系统 capability。
+- [packages/api/src/middleware/tenant.ts](../../packages/api/src/middleware/tenant.ts)
+  `tenantContextMiddleware`、ALS tenant 上下文。Use for: 多租户请求 scope。
+- [packages/data-provider/src/permissions.ts](../../packages/data-provider/src/permissions.ts)
+  `PermissionTypes`、`Permissions` 枚举与 zod schema。Use for: 前后端权限契约。
+- [client/src/hooks/Roles/useHasAccess.ts](../../client/src/hooks/Roles/useHasAccess.ts)
+  前端 RBAC 镜像。Use for: UI 按角色隐藏/禁用功能。
 - [client/src/routes/index.tsx](../../client/src/routes/index.tsx)
   前端路由表。Use for: 页面结构与懒加载入口。
 - [client/src/data-provider/](../../client/src/data-provider/)

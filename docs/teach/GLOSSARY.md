@@ -79,3 +79,23 @@ _Avoid_: 在 data-provider 里定义 Mongo-only 字段
 **tenantIsolation**:
 Model 注册时对 Schema 调用 `applyTenantIsolation`，查询/更新自动带 `tenantId`。系统任务用 `runAsSystem()`。
 _Avoid_: 在 handler 里手动拼 tenant filter 绕过插件
+
+**requireJwtAuth**:
+Legacy 中间件：Passport JWT 验证 → 填充 `req.user` → 链式调用 `tenantContextMiddleware`。失败返回 401。
+_Avoid_: 在 handler 里重复解析 JWT
+
+**optionalJwtAuth**:
+有 token 则设 `req.user` 并建立 tenant ALS；无 token 仍放行。用于 Banner、config 等「登录与否行为不同」的只读 API。
+_Avoid_: 用于必须登录的写操作
+
+**tenantContextMiddleware**:
+`packages/api/src/middleware/tenant.ts`。把 `req.user.tenantId` 写入 AsyncLocalStorage，供 `tenantIsolation` 插件与结构化日志使用。由 `requireJwtAuth` 成功后自动链接，勿全局 `app.use`。
+_Avoid_: 与 Lesson 0007 的 model 插件混为一谈（那是 DB 层；这是请求上下文）
+
+**RBAC（角色权限）**:
+`PermissionTypes`（如 SKILLS、AGENTS）× `Permissions`（USE、CREATE、SHARE…）存在 Role 文档。后端 `generateCheckAccess`，前端 `useHasAccess`，同一套枚举。
+_Avoid_: 在 route 里硬编码 `if (user.role === 'ADMIN')`
+
+**SystemCapabilities**:
+管理面 capability（如 READ_ROLES、ACCESS_ADMIN），经 principals 解析。`requireCapability` 用于 admin 路由，与功能 RBAC 是不同层。
+_Avoid_: 用 capability 替代普通功能的 USE 权限

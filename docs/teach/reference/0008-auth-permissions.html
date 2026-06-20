@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ref — 鉴权与权限速查</title>
+  <style>
+    @media print { body { background: #fff; color: #000; } .no-print { display: none; } }
+    body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; font-size: 0.9rem; }
+    h1 { font-size: 1.25rem; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+    th, td { border: 1px solid #ccc; padding: 0.4rem 0.5rem; text-align: left; vertical-align: top; }
+    th { background: #f5f5f5; }
+    .flow { font-family: ui-monospace, monospace; font-size: 0.75rem; background: #f8f8f8; padding: 0.75rem; border-left: 3px solid #f59e0b; margin: 1rem 0; white-space: pre-wrap; }
+    .rule { background: #fffbeb; border-left: 3px solid #f59e0b; padding: 0.75rem; margin: 1rem 0; font-size: 0.85rem; }
+    code { font-size: 0.85em; }
+  </style>
+</head>
+<body>
+  <h1>鉴权与权限速查</h1>
+  <p class="no-print"><a href="../lessons/0008-auth-permissions.html">← 回到 Lesson 0008</a></p>
+
+  <div class="flow">请求进入 route 的典型栈：
+
+requireJwtAuth          → 401 未登录
+  └ tenantContextMiddleware → ALS tenantId（供 tenantIsolation 插件）
+generateCheckAccess     → 403 角色无 USE/CREATE/…
+requireCapability       → 403 无系统 capability（admin）
+handler                 → 业务逻辑</div>
+
+  <table>
+    <tr><th>中间件</th><th>文件</th><th>回答的问题</th></tr>
+    <tr><td><code>requireJwtAuth</code></td><td><code>api/server/middleware/requireJwtAuth.js</code></td><td>你是谁？（必须登录）</td></tr>
+    <tr><td><code>optionalJwtAuth</code></td><td><code>optionalJwtAuth.js</code></td><td>登录则设 req.user，否则继续</td></tr>
+    <tr><td><code>tenantContextMiddleware</code></td><td><code>packages/api/src/middleware/tenant.ts</code></td><td>tenantId 写入 ALS</td></tr>
+    <tr><td><code>generateCheckAccess</code></td><td><code>packages/api/src/middleware/access.ts</code></td><td>角色 RBAC（功能开关）</td></tr>
+    <tr><td><code>requireCapability</code></td><td><code>packages/api/src/middleware/capabilities.ts</code></td><td>系统 capability（管理面）</td></tr>
+  </table>
+
+  <table>
+    <tr><th>层</th><th>类型来源</th><th>前端</th><th>后端</th></tr>
+    <tr><td>RBAC</td><td><code>PermissionTypes</code> + <code>Permissions</code></td><td><code>useHasAccess</code></td><td><code>generateCheckAccess</code></td></tr>
+    <tr><td>Capabilities</td><td><code>SystemCapabilities</code></td><td>admin UI gating</td><td><code>requireCapability</code></td></tr>
+  </table>
+
+  <div class="rule">
+    <strong>二开 checklist：</strong>写操作 route 用 <code>requireJwtAuth</code>；功能级 gate 用 <code>generateCheckAccess</code> + 与 UI 相同的 <code>PermissionTypes</code>；admin 路由加 <code>requireCapability</code>；需租户隔离的 collection 已在 model 层 <code>applyTenantIsolation</code>（Lesson 0007）。
+  </div>
+</body>
+</html>
